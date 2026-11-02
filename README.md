@@ -9,7 +9,7 @@ Panneau de santé de la machine, du runtime DSH, du workspace konoha, des dépô
 - **Workspace konoha** : branche et état git, missions par statut, file d'ordonnancement, prochaine action, cohérence des fiches.
 - **Dépôts** : état git des dépôts de `~/projects` (sale, ahead/behind, dernier commit), branches de mission.
 - **Kubernetes** : cluster kind-devspace, contexte, nœuds, pods, deployments, jobs, événements, Docker/colima, dernier état connu quand le cluster est arrêté. Le démarrage et l'arrêt de Docker suivent la plateforme : colima puis Docker Desktop sur macOS, service utilisateur `docker-desktop` sous Linux — le service système `docker.service` demande root et le panneau ne le lance pas lui-même.
-- **Sections vides** : le bloc Kubernetes est masqué tant qu'aucun outil de la chaîne (docker, kind, kubectl, colima) n'est installé ; la section Dépôts est masquée si `~/projects` n'existe pas. Ils réapparaissent d'eux-mêmes dès que la condition est remplie.
+- **Sections vides** : le bloc Kubernetes — carte, indicateur « Cluster » du bandeau et mention dans le sous-titre — est masqué tant qu'aucun outil de la chaîne (docker, kind, kubectl, colima) n'est installé ; la section Dépôts l'est si `~/projects` n'existe pas. La grille des indicateurs se répartit sur le nombre de cartes restantes. Tout réapparaît de lui-même dès que la condition est remplie.
 
 Le panneau se rafraîchit à l'ouverture, au retour de focus, puis toutes les 60 secondes tant qu'il est visible. Aucun sondage en arrière-plan. Le dernier état reçu est conservé en `localStorage` ; à l'ouverture suivante, le panneau l'affiche immédiatement pendant que le serveur recalcule l'état.
 
