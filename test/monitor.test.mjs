@@ -106,8 +106,8 @@ test('an unknown action is refused with 400', async () => {
     method: 'POST',
     url: '/systeme/api/action',
     headers: { host: '127.0.0.1:6000', origin: 'http://127.0.0.1:6000', 'content-type': 'application/json' },
-    body: { confirm: true, famille: 'devspace', action: 'start' },
+    body: { confirm: true, famille: 'inconnu', action: 'start' },
   })
   assert.equal(response.statusCode, 400)
-  assert.equal(json(response).error, 'action inconnue : devspace/start')
+  assert.equal(json(response).error, 'action inconnue : inconnu/start')
 })

@@ -64,5 +64,4 @@ test('le panneau démarre sans projectsRoot ni workspace', async () => {
   assert.match(state.repos.alert, /introuvable/)
 
   assert.equal(state.k8s.context, '')
-  assert.equal('devspace' in state.k8s, false)
 })
