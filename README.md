@@ -1,88 +1,105 @@
-# dsh-monitor — panneau Système
+# dsh-monitor
 
-Panneau de santé de la machine, du runtime DSH, du workspace konoha, des dépôts de `~/projects` et du cluster kind-devspace. Il s'ouvre par l'entrée « Système » de la barre latérale (ordre -100, en tête, avant Missions).
+A system panel for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): machine health, runtime state, the git repositories you work in, and a Kubernetes cluster — in one sidebar entry, without leaving the app.
 
-## Ce qu'il montre
+The panel opens from the sidebar entry **Système** (order -100, first). Its interface is written in French.
 
-- **Machine** : CPU, mémoire, disque, disque Colima, charge, batterie, swap, sparkline CPU 24 minutes, top processus. La ligne « Disque Colima » mesure la VM et non le Mac : espace libre du volume qui porte `/var/lib/docker` (sonde `colima ssh -- df -kP`), avec les mêmes seuils que le disque de l'hôte. VM arrêtée, la ligne l'écrit (« VM arrêtée », état gris) et le reste de la carte garde ses chiffres ; la fenêtre « Libérer de l'espace » le dit aussi, ainsi que l'erreur Docker quand il n'y a rien à lire. La ligne « Mémoire » suit la définition du Moniteur d'activité (mémoire d'application + câblée + compressée) ; elle n'affiche donc plus le `total − libre` de `os.freemem()`, qui plafonne à ~99 % dès que macOS garde des pages inactives et du cache de fichiers. La part active (pages actives + câblées) est affichée à côté : c'est le chiffre que rapporte btop, plus bas que celui du Moniteur d'activité de tout le volume compressé. Le CPU est un delta sur une vraie fenêtre de temps des deux côtés : échantillon de `/proc/stat` sous Linux, second échantillon de `top -l 2 -s 1` sous macOS (et non la moyenne depuis le démarrage que donne `top -l 1`). Sous Linux, les mêmes mesures viennent directement du noyau — `/proc/meminfo` (pourcentage au sens `MemAvailable`), `/proc/stat`, `/proc/swaps` et `/sys/class/power_supply` — donc sans installer d'outil : la source est la même que celle de `free` et de btop.
-- **DSH** : sessions actives, coût du jour (cost-meter), jobs en cours, erreurs de démarrage sur 24 h, cache, sessions récentes.
-- **Workspace konoha** : branche et état git, missions par statut, file d'ordonnancement, prochaine action, cohérence des fiches.
-- **Dépôts** : état git des dépôts de `~/projects` (sale, ahead/behind, dernier commit), branches de mission.
-- **Kubernetes** : cluster kind-devspace, tous namespaces — compteurs (nœuds prêts, pods actifs et non prêts, deployments disponibles et à zéro réplique, jobs actifs et échoués, statefulsets, daemonsets, cronjobs suspendus, volumes liés, namespaces), trois jauges de réservation (requests CPU, mémoire et pods contre l'allouable des nœuds), signaux dédupliqués (CrashLoopBackOff, ImagePullBackOff, pods Pending depuis plus de 5 minutes, OOMKilled, redémarrages au-delà du seuil, rollout bloqué, jobs échoués, volumes non liés, nœuds sous pression) et jusqu'à six familles de Warning récentes comptées par (reason, objet). La fenêtre « Ressources » liste deployments, pods, jobs, statefulsets, daemonsets, cronjobs et volumes non liés, filtrable par namespace, avec les gestes de remédiation. Contexte, outils de la chaîne et dernier état connu quand le cluster est arrêté. Le démarrage et l'arrêt de Docker suivent la plateforme : colima puis Docker Desktop sur macOS, service utilisateur `docker-desktop` sous Linux — le service système `docker.service` demande root et le panneau ne le lance pas lui-même.
-- **Sections vides** : le bloc Kubernetes — carte, indicateur « Cluster » du bandeau et mention dans le sous-titre — est masqué tant qu'aucun outil de la chaîne (docker, kind, kubectl, colima) n'est installé ; la section Dépôts l'est si `~/projects` n'existe pas. La grille des indicateurs se répartit sur le nombre de cartes restantes. Tout réapparaît de lui-même dès que la condition est remplie.
- (SLV-86: Panneau Système : l'inventaire du cluster et le disque de Colima)
+## What it shows
 
-Le panneau se rafraîchit à l'ouverture, au retour de focus, puis toutes les 60 secondes tant qu'il est visible. Aucun sondage en arrière-plan. Le dernier état reçu est conservé en `localStorage` ; à l'ouverture suivante, le panneau l'affiche immédiatement pendant que le serveur recalcule l'état.
+- **Machine** — CPU, memory, disk, load average, battery, swap, a 24-minute CPU sparkline and the top processes. Memory follows the Activity Monitor definition (app + wired + compressed) instead of the naive `total - free`, which sits at ~99 % as soon as the OS keeps inactive pages. CPU is a delta over a real time window on both platforms: a `/proc/stat` sample on Linux, the second `top -l 2 -s 1` sample on macOS. Linux reads `/proc/meminfo`, `/proc/stat`, `/proc/swaps` and `/sys/class/power_supply` directly. When Colima is present, its VM disk is measured through `colima ssh -- df -kP` and reported separately from the host disk.
+- **DSH** — active sessions, today's cost (from `dsh-cost-meter` when installed), running jobs, startup errors over 24 h, cache size, recent sessions.
+- **Repositories** — git state of every repository under `projectsRoot` (dirty, ahead/behind, last commit, other local branches).
+- **Kubernetes** — every namespace: ready nodes, active and non-ready pods, available and zero-replica deployments, jobs, statefulsets, daemonsets, suspended cronjobs, bound volumes, three reservation gauges against node allocatable, deduplicated signals (CrashLoopBackOff, ImagePullBackOff, pending pods, OOMKilled, restart thresholds, stuck rollouts, failed jobs, unbound volumes, node pressure) and recent Warning events grouped by (reason, object). The **Ressources** window lists deployments, pods, jobs, statefulsets, daemonsets, cronjobs and unbound volumes with per-namespace filtering and remediation gestures.
+- **Empty sections hide themselves** — the Kubernetes block disappears while none of docker, kind, kubectl or colima is installed; the repositories block disappears while `projectsRoot` does not exist. Both come back on their own.
 
-L'endpoint `/systeme/api/etat` répond toujours avec le dernier instantané disponible (stale-while-revalidate) et lance la reconstruction en arrière-plan : le panneau ne reste jamais bloqué sur un calcul de 20 s. Un instantané est reconstruit au plus toutes les 15 s, et les sections les plus coûteuses sont mises en cache pour éviter de relancer des dizaines de processus à chaque sondage : dépôts 3 min, workspace konoha et runtime DSH 90 s, cluster 20 s, machine et disque de la VM colima 15 s. `?refresh=1` force une reconstruction (après une remédiation), et le panneau enchaîne jusqu'à quatre revalidations à 3 s d'intervalle tant que l'instantané reçu est marqué `stale`.
+The panel refreshes on open, on window focus, and every 60 s while visible — no background polling. The last snapshot is cached in `localStorage` and painted immediately on the next open.
 
-## Remédiations
+`/systeme/api/etat` always answers with the latest snapshot (stale-while-revalidate) and rebuilds in the background, so the panel never blocks on a slow probe. A snapshot is rebuilt at most every 15 s, with per-section caching for the expensive parts (repositories 3 min, runtime 90 s, cluster 20 s, machine and Colima disk 15 s). `?refresh=1` forces a rebuild after a remediation.
 
-Chaque action exige une confirmation qui nomme la cible et l'impact mesuré. Rien ne part sans `confirm: true`. Le résultat est écrit dans le journal et l'état se rafraîchit.
+## Configuration
 
-| Famille | Actions |
-| --- | --- |
-| Processus | SIGTERM, puis SIGKILL après 5 s ; PID 1, processus système et hôte DSH protégés |
-| DSH | Arrêt d'un job de la session courante, vidage de `~/.dsh/cache` |
-| Disque | Purge Docker sans volumes (images et cache de construction récupérables, volumes conservés), vidage du cache DSH, `node_modules` des dépôts sans commit depuis 30 jours, artefacts `dist/build/.next/target` de ces dépôts. La fenêtre « Libérer de l'espace » montre le disque de la VM colima et la répartition Docker par catégorie (images, conteneurs, volumes, cache de construction) avec le récupérable de chacune |
-| Kubernetes | `rollout restart` d'un deployment, suppression d'un pod, purge d'un job terminé — dans le namespace de la ressource choisie, tous namespaces confondus dans la fenêtre Ressources |
-| Devspace | Démarrage de colima puis du cluster kind-devspace (commande documentée du dépôt devspace-saasoffice) ; arrêt par `colima stop` — le cluster kind et ses volumes sont conservés, aucun `kind delete` |
+The plugin is configured on its `cordis.patch.yml` entry:
 
-Garde-fous : aucune suppression d'un fichier suivi par git, aucun volume Docker, aucun secret lu, aucune écriture git, aucune action AKS, aucune remédiation automatique.
-
-## Seuils
-
-Valeurs par défaut, modifiables dans le panneau :
-
-| Mesure | Attention | Alerte |
+| Key | Default | Meaning |
 | --- | --- | --- |
-| Disque libre (hôte et VM colima) | < 20 % | < 10 % |
-| Mémoire utilisée | > 80 % | > 90 % |
-| Charge | > 1 × cœurs | > 2 × cœurs |
-| Batterie | < 20 % | < 10 % |
-| Dépôt sale | > 3 jours | > 7 jours |
-| Redémarrages de pod | > 2 | > 5 |
+| `projectsRoot` | `~/projects` | Directory holding the git repositories to watch |
+| `devspacePath` | `''` | Optional repository that owns the Kubernetes cluster definition (`common/devspace.yaml`); empty disables cluster creation |
+| `k8sContext` | `''` | Expected `kubectl` context; empty means any context is accepted |
+| `clusterName` | `devspace` | kind cluster name; the expected context defaults to `kind-<clusterName>` |
 
-Configuration : `~/.dsh/storages/dsh-monitor/config.json`. Journal : `~/.dsh/storages/dsh-monitor/journal.jsonl` — toujours écrit, plus affiché dans le panneau. Dernier état Kubernetes : `~/.dsh/storages/dsh-monitor/k8s-last.json`.
-
-## Installation
-
-```sh
-# depuis la racine du dépôt konoha
-cd config/tools/dsh-monitor
-npm pack
-mkdir -p dist && mv dsh-monitor-0.2.3.tgz dist/
-
-# sauvegarde du profil avant écriture
-mkdir -p ~/.dsh/backups/SLV-86-$(date +%Y%m%d)
-for f in package.json pnpm-lock.yaml cordis.patch.yml cordis.yml pnpm-workspace.yaml; do
-  cp -L ~/.dsh/profiles/desktop/$f ~/.dsh/backups/SLV-86-$(date +%Y%m%d)/$f
-done
-(cd ~/.dsh/backups/SLV-86-$(date +%Y%m%d) && shasum -a 256 * > SHA256SUMS)
-
-# installation puis redémarrage complet de l'application (Cmd+Q)
-dsh plugin --profile desktop add file:$PWD/dist/dsh-monitor-0.2.3.tgz
+```yaml
+- insert:
+    - id: systeme
+      name: '@daedalforge/dsh-monitor'
+      config:
+        projectsRoot: '~/projects'
+        devspacePath: ''
+        k8sContext: 'kind-devspace'
+        clusterName: 'devspace'
 ```
 
-Le redémarrage complet est nécessaire : une nouvelle route serveur n'est pas chargée par un simple rechargement du client.
+Thresholds are edited from the panel and stored in `~/.dsh/storages/dsh-monitor/config.json`:
 
-Désinstallation :
+| Measure | Attention | Alert |
+| --- | --- | --- |
+| Free disk (host and Colima VM) | < 20 % | < 10 % |
+| Memory used | > 80 % | > 90 % |
+| Load | > 1 × cores | > 2 × cores |
+| Battery | < 20 % | < 10 % |
+| Dirty repository | > 3 days | > 7 days |
+| Pod restarts | > 2 | > 5 |
+
+Journal: `~/.dsh/storages/dsh-monitor/journal.jsonl`. Last Kubernetes state: `~/.dsh/storages/dsh-monitor/k8s-last.json`.
+
+## Remediations
+
+Every action requires a confirmation naming the target and the measured impact. Nothing runs without `confirm: true`; the outcome is written to the journal and the panel refreshes.
+
+| Family | Actions |
+| --- | --- |
+| Process | SIGTERM then SIGKILL after 5 s — PID 1, system processes, the DSH host and container runtimes are protected |
+| DSH | Stop a job of the current session, empty `~/.dsh/cache` |
+| Disk | Docker prune without volumes, DSH cache, `node_modules` of repositories with no commit in 30 days, `dist/build/.next/target` artifacts of those repositories — never a git-tracked file |
+| Kubernetes | `rollout restart` of a deployment, delete a pod, purge a finished job |
+| Cluster | Start Docker then the kind cluster (creation only when `devspacePath` is configured), stop with `colima stop` — the cluster and its volumes are kept, never `kind delete` |
+
+No Docker volume is ever removed, no secret is read, no git write is performed, no automatic remediation runs.
+
+## Install
 
 ```sh
-dsh plugin --profile desktop remove dsh-monitor
+dsh plugin --profile desktop add @daedalforge/dsh-monitor
 ```
 
-Les fichiers de `~/.dsh/storages/dsh-monitor/` restent en place ; les supprimer manuellement si nécessaire.
+Restart the application completely (Cmd+Q) — a new server route is not picked up by a client reload.
+
+From a tarball or a git checkout:
+
+```sh
+dsh plugin --profile desktop add file:/path/to/daedalforge-dsh-monitor-0.3.0.tgz
+```
+
+Uninstall:
+
+```sh
+dsh plugin --profile desktop remove @daedalforge/dsh-monitor
+```
+
+Files under `~/.dsh/storages/dsh-monitor/` stay in place; delete them by hand if you want a clean slate.
 
 ## Architecture
 
-- `lib/index.js` : serveur (collecteurs, seuils, actions, journal). Routes `/systeme/api/etat`, `/systeme/api/disque`, `/systeme/api/action`, `/systeme/api/journal`, `/systeme/api/reglages`.
-- `lib/client.js` : panneau React chargé par le client DSH, styles scopés sous `.dsh-systeme`.
-- `cordis.patch.yml` : insertion du bundle `systeme`.
+- `lib/index.js` — server side: collectors, thresholds, actions, journal. Routes `/systeme/api/etat`, `/systeme/api/disque`, `/systeme/api/action`, `/systeme/api/journal`, `/systeme/api/reglages`. Requests must be local and same-origin; anything else gets a 403.
+- `lib/client.js` — the React panel loaded by the DSH client, styles scoped under `.dsh-systeme`.
+- `cordis.patch.yml` — inserts the `systeme` entry.
 
-## Limites
+## Limits
 
-- Machine : macOS par ses outils système (`vm_stat`, `sysctl`, `pmset`, `top`), Linux par `/proc` et `/sys` (`ps`/`df` dans les deux cas). Les sections DSH, konoha et dépôts sont communes ; Kubernetes et Devspace supposent `docker`, `kind` et `colima`.
-- Pas d'AKS, pas d'alerting hors application, pas d'historique de métriques, pas de remédiation automatique.
-- Le panneau lit le disque et les dépôts ; il ne modifie aucun fichier suivi par git.
-- Le service jobs est fourni par le client DSH ; l'arrêt d'un job n'est disponible que pour la session courante.
+- Machine metrics use macOS tools (`vm_stat`, `sysctl`, `pmset`, `top`) or procfs/sysfs on Linux; `ps` and `df` are used on both. Kubernetes and cluster start-up assume `docker` (or `colima`), `kind` and `kubectl`.
+- No alerting outside the app, no metric history, no automatic remediation.
+- The panel reads the disk and the repositories; it never modifies a git-tracked file.
+- Stopping a job is only available for the current session.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
