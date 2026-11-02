@@ -4,7 +4,7 @@ Panneau de santé de la machine, du runtime DSH, du workspace konoha, des dépô
 
 ## Ce qu'il montre
 
-- **Machine** : CPU, mémoire, disque, charge, batterie, swap, sparkline CPU 24 minutes, top processus.
+- **Machine** : CPU, mémoire, disque, charge, batterie, swap, sparkline CPU 24 minutes, top processus. La ligne « Mémoire » suit la définition du Moniteur d'activité (mémoire d'application + câblée + compressée) ; elle n'affiche donc plus le `total − libre` de `os.freemem()`, qui plafonne à ~99 % dès que macOS garde des pages inactives et du cache de fichiers. La part active (pages actives + câblées) est affichée à côté : c'est le chiffre que rapporte btop, plus bas que celui du Moniteur d'activité de tout le volume compressé.
 - **DSH** : sessions actives, coût du jour (cost-meter), jobs en cours, erreurs de démarrage sur 24 h, cache, sessions récentes.
 - **Workspace konoha** : branche et état git, missions par statut, file d'ordonnancement, prochaine action, cohérence des fiches.
 - **Dépôts** : état git des dépôts de `~/projects` (sale, ahead/behind, dernier commit), branches de mission.
@@ -12,6 +12,8 @@ Panneau de santé de la machine, du runtime DSH, du workspace konoha, des dépô
 - **Journal des remédiations** : chaque action confirmée, datée, avec sa cible, son impact et son résultat.
 
 Le panneau se rafraîchit à l'ouverture, au retour de focus, puis toutes les 60 secondes tant qu'il est visible. Aucun sondage en arrière-plan. Le dernier état reçu est conservé en `localStorage` ; à l'ouverture suivante, le panneau l'affiche immédiatement pendant que le serveur recalcule l'état.
+
+L'endpoint `/systeme/api/etat` répond toujours avec le dernier instantané disponible (stale-while-revalidate) et lance la reconstruction en arrière-plan : le panneau ne reste jamais bloqué sur un calcul de 20 s. Un instantané est reconstruit au plus toutes les 15 s, et les sections les plus coûteuses sont mises en cache pour éviter de relancer des dizaines de processus à chaque sondage : dépôts 3 min, workspace konoha et runtime DSH 90 s, cluster 20 s, machine 15 s. `?refresh=1` force une reconstruction (après une remédiation), et le panneau enchaîne jusqu'à quatre revalidations à 3 s d'intervalle tant que l'instantané reçu est marqué `stale`.
 
 ## Remédiations
 
