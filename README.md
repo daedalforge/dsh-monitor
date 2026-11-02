@@ -92,6 +92,26 @@ Files under `~/.dsh/storages/dsh-monitor/` stay in place; delete them by hand if
 - `lib/client.js` — the React panel loaded by the DSH client, styles scoped under `.dsh-systeme`.
 - `cordis.patch.yml` — inserts the `systeme` entry.
 
+## Releases
+
+The version is never set by hand. When a pull request is merged into `main`, the release workflow takes the last `vX.Y.Z` tag and derives the next version from the branch that was merged:
+
+| Merged branch | Version |
+| --- | --- |
+| `fix/*` | patch — `z` plus one |
+| `major/*` | major — `x` plus one, `y` and `z` back to zero |
+| anything else | minor — `y` plus one, `z` back to zero |
+
+It writes that version into `package.json` with a commit created through the GitHub API, so GitHub signs it; tags the commit; publishes to npm with provenance; and opens a GitHub release holding the tarball. With no tag yet, the version sitting in `package.json` is released as is — that is the first release.
+
+Publishing authenticates through npm trusted publishing: no token is stored in the repository, the workflow file is the credential.
+
+```sh
+npm trust github @daedalforge/dsh-monitor --repo daedalforge/dsh-monitor --file release.yml --allow-publish
+```
+
+Because the workflow commits to `main`, the GitHub Actions integration has to bypass the pull request rule of the branch ruleset; the signature rule needs no bypass, the API commit already carries GitHub's signature. A publish that fails can be replayed from the Actions tab, with the tag to publish as input.
+
 ## Limits
 
 - Machine metrics use macOS tools (`vm_stat`, `sysctl`, `pmset`, `top`) or procfs/sysfs on Linux; `ps` and `df` are used on both. Kubernetes inspection assumes `docker` (or `colima`), `kind` and `kubectl`; the cluster itself is never created, started or stopped by the panel.
