@@ -4,11 +4,11 @@ Panneau de santé de la machine, du runtime DSH, du workspace konoha, des dépô
 
 ## Ce qu'il montre
 
-- **Machine** : CPU, mémoire, disque, charge, batterie, swap, sparkline CPU 24 minutes, top processus. La ligne « Mémoire » suit la définition du Moniteur d'activité (mémoire d'application + câblée + compressée) ; elle n'affiche donc plus le `total − libre` de `os.freemem()`, qui plafonne à ~99 % dès que macOS garde des pages inactives et du cache de fichiers. La part active (pages actives + câblées) est affichée à côté : c'est le chiffre que rapporte btop, plus bas que celui du Moniteur d'activité de tout le volume compressé.
+- **Machine** : CPU, mémoire, disque, charge, batterie, swap, sparkline CPU 24 minutes, top processus. La ligne « Mémoire » suit la définition du Moniteur d'activité (mémoire d'application + câblée + compressée) ; elle n'affiche donc plus le `total − libre` de `os.freemem()`, qui plafonne à ~99 % dès que macOS garde des pages inactives et du cache de fichiers. La part active (pages actives + câblées) est affichée à côté : c'est le chiffre que rapporte btop, plus bas que celui du Moniteur d'activité de tout le volume compressé. Sous Linux, les mêmes mesures viennent directement du noyau — `/proc/meminfo` (pourcentage au sens `MemAvailable`), `/proc/stat`, `/proc/swaps` et `/sys/class/power_supply` — donc sans installer d'outil : la source est la même que celle de `free` et de btop.
 - **DSH** : sessions actives, coût du jour (cost-meter), jobs en cours, erreurs de démarrage sur 24 h, cache, sessions récentes.
 - **Workspace konoha** : branche et état git, missions par statut, file d'ordonnancement, prochaine action, cohérence des fiches.
 - **Dépôts** : état git des dépôts de `~/projects` (sale, ahead/behind, dernier commit), branches de mission.
-- **Kubernetes** : cluster kind-devspace, contexte, nœuds, pods, deployments, jobs, événements, Docker/colima, dernier état connu quand le cluster est arrêté.
+- **Kubernetes** : cluster kind-devspace, contexte, nœuds, pods, deployments, jobs, événements, Docker/colima, dernier état connu quand le cluster est arrêté. Le démarrage et l'arrêt de Docker suivent la plateforme : colima puis Docker Desktop sur macOS, service utilisateur `docker-desktop` sous Linux — le service système `docker.service` demande root et le panneau ne le lance pas lui-même.
 - **Journal des remédiations** : chaque action confirmée, datée, avec sa cible, son impact et son résultat.
 
 Le panneau se rafraîchit à l'ouverture, au retour de focus, puis toutes les 60 secondes tant qu'il est visible. Aucun sondage en arrière-plan. Le dernier état reçu est conservé en `localStorage` ; à l'ouverture suivante, le panneau l'affiche immédiatement pendant que le serveur recalcule l'état.
