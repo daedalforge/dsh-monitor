@@ -1,6 +1,6 @@
 {
   "name": "dsh-monitor",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Panneau Système : santé de la machine, du runtime DSH, du workspace konoha, des dépôts et du cluster kind-devspace",
   "type": "module",
