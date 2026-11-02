@@ -10,7 +10,6 @@ Panneau de santé de la machine, du runtime DSH, du workspace konoha, des dépô
 - **Dépôts** : état git des dépôts de `~/projects` (sale, ahead/behind, dernier commit), branches de mission.
 - **Kubernetes** : cluster kind-devspace, contexte, nœuds, pods, deployments, jobs, événements, Docker/colima, dernier état connu quand le cluster est arrêté. Le démarrage et l'arrêt de Docker suivent la plateforme : colima puis Docker Desktop sur macOS, service utilisateur `docker-desktop` sous Linux — le service système `docker.service` demande root et le panneau ne le lance pas lui-même.
 - **Sections vides** : le bloc Kubernetes est masqué tant qu'aucun outil de la chaîne (docker, kind, kubectl, colima) n'est installé ; la section Dépôts est masquée si `~/projects` n'existe pas. Ils réapparaissent d'eux-mêmes dès que la condition est remplie.
-- **Journal des remédiations** : chaque action confirmée, datée, avec sa cible, son impact et son résultat.
 
 Le panneau se rafraîchit à l'ouverture, au retour de focus, puis toutes les 60 secondes tant qu'il est visible. Aucun sondage en arrière-plan. Le dernier état reçu est conservé en `localStorage` ; à l'ouverture suivante, le panneau l'affiche immédiatement pendant que le serveur recalcule l'état.
 
@@ -43,7 +42,7 @@ Valeurs par défaut, modifiables dans le panneau :
 | Dépôt sale | > 3 jours | > 7 jours |
 | Redémarrages de pod | > 2 | > 5 |
 
-Configuration : `~/.dsh/storages/dsh-monitor/config.json`. Journal : `~/.dsh/storages/dsh-monitor/journal.jsonl`. Dernier état Kubernetes : `~/.dsh/storages/dsh-monitor/k8s-last.json`.
+Configuration : `~/.dsh/storages/dsh-monitor/config.json`. Journal : `~/.dsh/storages/dsh-monitor/journal.jsonl` — toujours écrit, plus affiché dans le panneau. Dernier état Kubernetes : `~/.dsh/storages/dsh-monitor/k8s-last.json`.
 
 ## Installation
 
@@ -51,7 +50,7 @@ Configuration : `~/.dsh/storages/dsh-monitor/config.json`. Journal : `~/.dsh/sto
 # depuis la racine du dépôt konoha
 cd config/tools/dsh-monitor
 npm pack
-mkdir -p dist && mv dsh-monitor-0.1.0.tgz dist/
+mkdir -p dist && mv dsh-monitor-0.1.4.tgz dist/
 
 # sauvegarde du profil avant écriture
 mkdir -p ~/.dsh/backups/SLV-77-$(date +%Y%m%d)
@@ -61,7 +60,7 @@ done
 (cd ~/.dsh/backups/SLV-77-$(date +%Y%m%d) && shasum -a 256 * > SHA256SUMS)
 
 # installation puis redémarrage complet de l'application (Cmd+Q)
-dsh plugin --profile desktop add file:$PWD/dist/dsh-monitor-0.1.0.tgz
+dsh plugin --profile desktop add file:$PWD/dist/dsh-monitor-0.1.4.tgz
 ```
 
 Le redémarrage complet est nécessaire : une nouvelle route serveur n'est pas chargée par un simple rechargement du client.
