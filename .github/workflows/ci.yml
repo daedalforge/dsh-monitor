@@ -22,7 +22,7 @@ jobs:
           node --check lib/index.js
           node --check lib/client.js
       - name: Tests
-        run: node --test test/
+        run: npm test
       - name: No internal reference
         run: |
           if git grep -inE '(konoha|SLV-[0-9]+)' -- lib cordis.patch.yml README.md package.json LICENSE; then
