@@ -81,7 +81,7 @@ Les fichiers de `~/.dsh/storages/dsh-monitor/` restent en place ; les supprimer 
 
 ## Limites
 
-- macOS local uniquement pour la machine ; les collecteurs supposent `ps`, `df`, `sysctl`, `pmset`.
+- Machine : macOS par ses outils système (`vm_stat`, `sysctl`, `pmset`, `top`), Linux par `/proc` et `/sys` (`ps`/`df` dans les deux cas). Les sections DSH, konoha et dépôts sont communes ; Kubernetes et Devspace supposent `docker`, `kind` et `colima`.
 - Pas d'AKS, pas d'alerting hors application, pas d'historique de métriques, pas de remédiation automatique.
 - Le panneau lit le disque et les dépôts ; il ne modifie aucun fichier suivi par git.
 - Le service jobs est fourni par le client DSH ; l'arrêt d'un job n'est disponible que pour la session courante.
