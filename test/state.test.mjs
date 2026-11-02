@@ -57,14 +57,12 @@ test('le panneau démarre sans projectsRoot ni workspace', async () => {
   assert.equal(response.statusCode, 200)
   const state = JSON.parse(response.payload)
 
-  assert.equal('konoha' in state, false)
   assert.deepEqual(Object.keys(state).sort(), ['at', 'config', 'dsh', 'journal', 'k8s', 'machine', 'repos', 'stale'])
 
   assert.equal(state.repos.hidden, true)
   assert.equal(state.repos.state, 'bad')
   assert.match(state.repos.alert, /introuvable/)
 
-  assert.equal(state.k8s.devspace.cluster, 'kind-essai')
-  assert.equal(state.k8s.devspace.repo, '')
-  assert.equal(state.k8s.devspace.canStart, false)
+  assert.equal(state.k8s.context, '')
+  assert.equal('devspace' in state.k8s, false)
 })

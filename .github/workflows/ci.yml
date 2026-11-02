@@ -23,9 +23,9 @@ jobs:
           node --check lib/client.js
       - name: Tests
         run: npm test
-      - name: No internal reference
+      - name: No local path
         run: |
-          if git grep -inE '(konoha|SLV-[0-9]+)' -- lib cordis.patch.yml README.md package.json LICENSE; then
-            echo "::error::internal reference found in a published file"
+          if git grep -nE '/(Users|home)/[A-Za-z]' -- lib cordis.patch.yml README.md package.json LICENSE; then
+            echo "::error::absolute local path found in a published file"
             exit 1
           fi

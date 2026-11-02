@@ -3,6 +3,6 @@
       name: '@daedalforge/dsh-monitor'
       config:
         projectsRoot: '~/projects'
-        devspacePath: ''
         k8sContext: ''
-        clusterName: 'devspace'
+        clusterName: ''
+        costLedger: ''

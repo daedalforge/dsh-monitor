@@ -15,7 +15,6 @@ function mount(config = {}) {
   const routes = []
   const indexes = []
   apply({
-    config,
     effect: (task) => task(),
     webServer: {
       tapIndex: (task) => {
@@ -25,7 +24,7 @@ function mount(config = {}) {
         routes.push(options)
       },
     },
-  })
+  }, config)
   return { handler: routes[0].handler, route: routes[0], indexes }
 }
 
@@ -63,7 +62,7 @@ test('the package and the patch agree on the plugin name', async () => {
   assert.deepEqual(inject, ['webServer'])
   const patch = await readFile(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
   assert.match(patch, /name: '@daedalforge\/dsh-monitor'/)
-  for (const key of ['projectsRoot', 'devspacePath', 'k8sContext', 'clusterName']) {
+  for (const key of ['projectsRoot', 'k8sContext', 'clusterName', 'costLedger']) {
     assert.match(patch, new RegExp(`${key}:`))
   }
 })
@@ -101,14 +100,14 @@ test('unknown routes answer 404', async () => {
   assert.equal(response.statusCode, 404)
 })
 
-test('starting the cluster without devspacePath is refused before any tool runs', async () => {
-  const { handler } = mount({ devspacePath: '' })
+test('an unknown action is refused with 400', async () => {
+  const { handler } = mount({})
   const response = await call(handler, {
     method: 'POST',
     url: '/systeme/api/action',
-    headers: { 'content-type': 'application/json' },
+    headers: { host: '127.0.0.1:6000', origin: 'http://127.0.0.1:6000', 'content-type': 'application/json' },
     body: { confirm: true, famille: 'devspace', action: 'start' },
   })
-  assert.equal(response.statusCode, 422)
-  assert.equal(json(response).error, 'devspacePath n’est pas configuré')
+  assert.equal(response.statusCode, 400)
+  assert.equal(json(response).error, 'action inconnue : devspace/start')
 })
