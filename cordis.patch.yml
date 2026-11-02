@@ -1,3 +1,8 @@
 - insert:
     - id: systeme
-      name: dsh-monitor
+      name: '@daedalforge/dsh-monitor'
+      config:
+        projectsRoot: '~/projects'
+        devspacePath: ''
+        k8sContext: ''
+        clusterName: 'devspace'
