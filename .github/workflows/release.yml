@@ -1,8 +1,8 @@
 name: Release
 
 on:
-  pull_request:
-    types: [closed]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'Release v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,37 +35,53 @@ jobs:
       - name: Use the latest npm
         run: npm install --global npm@latest
 
+      - name: Test
+        run: npm test
+
       - name: Pick the next version
         id: version
         env:
-          BRANCH: ${{ github.event.pull_request.head.ref }}
           REQUESTED: ${{ github.event.inputs.version }}
         run: |
           set -euo pipefail
           if [ -n "${REQUESTED:-}" ]; then
             echo "version=${REQUESTED#v}" >> "$GITHUB_OUTPUT"
+            echo "republishing ${REQUESTED#v}"
             exit 0
           fi
-          tags="$(git tag --list 'v*' --sort=-v:refname)"
-          last="${tags%%$'\n'*}"
+          last="$(git tag --list 'v*' --sort=-v:refname | head -1)"
           if [ -z "$last" ]; then
-            current="$(node -p "require('./package.json').version")"
-            echo "version=$current" >> "$GITHUB_OUTPUT"
-            echo "no tag yet, first release is $current"
+            version="$(node -p "require('./package.json').version")"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "no tag yet, first release is $version"
             exit 0
+          fi
+          messages="$(git log --format='%s%n%b' "$last..HEAD")"
+          if grep -qE '^[a-z]+(\(.+\))?!:|BREAKING[ -]CHANGE' <<< "$messages"; then
+            bump=major
+          elif grep -qE '^feat(\(.+\))?:' <<< "$messages"; then
+            bump=minor
+          else
+            bump=patch
           fi
           base="${last#v}"
           IFS=. read -r x y z <<< "$base"
-          case "$BRANCH" in
-            fix/*) z=$((z + 1)) ;;
-            major/*) x=$((x + 1)); y=0; z=0 ;;
-            *) y=$((y + 1)); z=0 ;;
+          case "$bump" in
+            major) x=$((x + 1)); y=0; z=0 ;;
+            minor) y=$((y + 1)); z=0 ;;
+            patch) z=$((z + 1)) ;;
           esac
           echo "version=$x.$y.$z" >> "$GITHUB_OUTPUT"
-          echo "$last on $BRANCH releases $x.$y.$z"
+          echo "$last plus a $bump change releases $x.$y.$z"
 
-      - name: Test
-        run: npm test
+      - name: Set the version
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version
+
+      - name: Publish to npm with trusted publishing
+        run: npm publish --access public --provenance
 
       - name: Commit the version on main
         id: commit
@@ -75,16 +91,14 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          current="$(node -p "require('./package.json').version")"
-          if [ "$current" = "$VERSION" ]; then
-            echo "package.json already says $VERSION"
-            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          npm version "$VERSION" --no-git-tag-version
           content="$(base64 < package.json | tr -d '\n')"
           sha="$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json" --jq .sha)"
-          commit="$(gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/package.json"             -f message="Release v$VERSION"             -f content="$content"             -f sha="$sha"             -f branch=main             --jq .commit.sha)"
+          commit="$(gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/package.json" \
+            -f message="Release v$VERSION" \
+            -f content="$content" \
+            -f sha="$sha" \
+            -f branch=main \
+            --jq .commit.sha)"
           echo "sha=$commit" >> "$GITHUB_OUTPUT"
           echo "Release v$VERSION committed as $commit"
 
@@ -104,9 +118,6 @@ jobs:
             -f ref="refs/tags/v$VERSION" \
             -f sha="$SHA" >/dev/null
           echo "tagged v$VERSION"
-
-      - name: Publish to npm with trusted publishing
-        run: npm publish --access public --provenance
 
       - name: Pack the tarball
         run: npm pack --pack-destination dist

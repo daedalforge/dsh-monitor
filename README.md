@@ -94,15 +94,15 @@ Files under `~/.dsh/storages/dsh-monitor/` stay in place; delete them by hand if
 
 ## Releases
 
-The version is never set by hand. When a pull request is merged into `main`, the release workflow takes the last `vX.Y.Z` tag and derives the next version from the branch that was merged:
+The version is never set by hand. Every push to `main` reads the commits since the last `vX.Y.Z` tag and takes the highest bump their messages ask for:
 
-| Merged branch | Version |
+| Commit messages since the last tag | Version |
 | --- | --- |
-| `fix/*` | patch — `z` plus one |
-| `major/*` | major — `x` plus one, `y` and `z` back to zero |
-| anything else | minor — `y` plus one, `z` back to zero |
+| one starts with `feat:` | minor — `y` plus one, `z` back to zero |
+| one carries `!` before the colon (`feat!:`, `fix!:`) or a `BREAKING CHANGE:` footer | major — `x` plus one, `y` and `z` back to zero |
+| anything else (`fix:`, `chore:`, `docs:`, a plain sentence) | patch — `z` plus one |
 
-It writes that version into `package.json` with a commit created through the GitHub API, so GitHub signs it; tags the commit; publishes to npm with provenance; and opens a GitHub release holding the tarball. With no tag yet, the version sitting in `package.json` is released as is — that is the first release.
+It writes that version into `package.json` with a commit created through the GitHub API, so GitHub signs it; tags the commit; publishes to npm with provenance; and opens a GitHub release holding the tarball. With no tag yet, the version sitting in `package.json` is released as is — that is the first release. The release commit is skipped by the same trigger, so the workflow never loops.
 
 Publishing authenticates through npm trusted publishing: no token is stored in the repository, the workflow file is the credential.
 
@@ -110,7 +110,8 @@ Publishing authenticates through npm trusted publishing: no token is stored in t
 npm trust github @daedalforge/dsh-monitor --repo daedalforge/dsh-monitor --file release.yml --allow-publish
 ```
 
-Because the workflow commits to `main`, the GitHub Actions integration has to bypass the pull request rule of the branch ruleset; the signature rule needs no bypass, the API commit already carries GitHub's signature. A publish that fails can be replayed from the Actions tab, with the tag to publish as input.
+The workflow writes to `main`, which a branch ruleset guards. The commit travels through the GitHub API, so it carries GitHub's own signature and clears the signature rule; the ruleset must therefore not require a pull request. A publish that fails can be replayed from the Actions tab, with the tag to publish as input.
+
 
 ## Limits
 
