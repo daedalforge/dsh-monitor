@@ -69,5 +69,6 @@ jobs:
           TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
         run: |
           set -euo pipefail
+          mkdir -p dist
           npm pack --pack-destination dist
           gh release upload "$TAG" dist/*.tgz --clobber

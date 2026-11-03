@@ -108,11 +108,20 @@ Opening the release is what publishes: a second workflow runs on `release: publi
 
 The release workflow writes to `main`, which a branch ruleset guards with a pull request and a verified signature. It does so under a dedicated GitHub App, whose installation token it mints with `actions/create-github-app-token`; that app sits on the bypass list of both rulesets, so the version commit, the tag and the release land without weakening the rules. Two secrets carry the identity: `APP_ID`, and `APP_PRIVATE_KEY` holding the app's private key. The release must be opened with that app token and not with `GITHUB_TOKEN`, or the `Publish` workflow would never run.
 
-Publishing authenticates through npm trusted publishing: no token is stored in the repository, the workflow file is the credential.
+Trusted publishing only adds a version to a package that already exists; it cannot create the package. The very first version therefore has to be pushed by a person holding the npm account, with two-factor authentication enabled — a security key or an authenticator app, which npm asks for in the browser. From the tagged commit:
+
+```sh
+npm login
+npm publish --access public
+```
+
+That first version is the only one without provenance. Everything after it goes through the workflow, which authenticates through npm trusted publishing: no token is stored in the repository, the workflow file is the credential.
 
 ```sh
 npm trust github @daedalforge/dsh-monitor --repo daedalforge/dsh-monitor --file publish.yml --allow-publish
 ```
+
+Run that once the package exists. The trust configuration lives inside the package, so deleting the package deletes it too — including the placeholder npm creates on its own while a staged publish is pending, and removes again when that staged publish is rejected.
 
 A publish that fails can be replayed from the Actions tab, with the tag to publish as input.
 
