@@ -18,25 +18,32 @@ The panel refreshes on open, on window focus, and every 60 s while visible — n
 
 ## Configuration
 
-The plugin is configured on its `cordis.patch.yml` entry:
+The plugin is configured on its `cordis.patch.yml` entry, from a page the package brings to **Plugins → Système**. Saving the page writes the values into the profile patch (the YAML below), so the configuration stays in the profile's own file.
+
+The page is split in three sections: **Général** first, with the panel refresh cadence, then **Dépôts git** and **Kubernetes**. The Kubernetes card of the panel carries the context picker itself: it lists the contexts `kubectl` declares on the machine, plus an automatic entry, the default, that follows the current context, and writes the choice straight to `k8sContext`. `kind-*` contexts are recognised by their prefix for the cluster check. Each of those last two opens with a switch that hides the matching card of the panel — the switch only changes what the panel shows, the collection keeps running in the background so a card comes back with its current values when switched on again.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `projectsRoot` | `~/projects` | Directory holding the git repositories to watch |
-| `k8sContext` | `''` | Expected `kubectl` context; empty means any context is accepted |
-| `clusterName` | `''` | kind cluster to expect, as `kind-<clusterName>`; empty means no expectation |
-| `costLedger` | `''` | Optional JSON ledger with `days.<YYYY-MM-DD>.cost`, `.calls` and `config.currency`/`config.symbol`; empty hides the cost row |
+| `showRepos` | `true` | Show the Dépôts card |
+| `k8sContext` | `''` | Watched `kubectl` context, chosen from the Kubernetes card of the panel among the contexts the machine detects; empty follows the current context |
+| `showK8s` | `true` | Show the Kubernetes card |
+| `costLedger` | `~/.dsh/storages/cost-meter/ledger.json` | Ledger written by `dsh-cost-meter` (`days.<YYYY-MM-DD>.cost`, `.calls`, `config.currency`/`config.symbol`); empty hides the cost row. Not shown on the page — override it in the YAML only when the ledger lives elsewhere |
+| `refreshSeconds` | `60` | Panel refresh cadence, in seconds, clamped between `15` and `900` |
 
 ```yaml
 - insert:
     - id: systeme
       name: '@daedalforge/dsh-monitor'
       config:
+        refreshSeconds: 60
         projectsRoot: '~/projects'
+        showRepos: true
         k8sContext: ''
-        clusterName: ''
-        costLedger: ''
+        showK8s: true
 ```
+
+An empty field clears its key and falls back to the schema default. The panel follows `refreshSeconds` and the two card switches without a restart: they are volatile values, read at each build of the state.
 
 Thresholds are edited from the panel and stored in `~/.dsh/storages/dsh-monitor/config.json`:
 

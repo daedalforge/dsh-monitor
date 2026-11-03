@@ -62,9 +62,10 @@ test('the package and the patch agree on the plugin name', async () => {
   assert.deepEqual(inject, ['webServer'])
   const patch = await readFile(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
   assert.match(patch, /name: '@daedalforge\/dsh-monitor'/)
-  for (const key of ['projectsRoot', 'k8sContext', 'clusterName', 'costLedger']) {
+  for (const key of ['projectsRoot', 'refreshSeconds']) {
     assert.match(patch, new RegExp(`${key}:`))
   }
+  assert.doesNotMatch(patch, /costLedger:/)
 })
 
 test('apply registers the api prefix and injects the client metadata', () => {

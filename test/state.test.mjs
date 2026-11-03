@@ -52,12 +52,14 @@ function call(handler, url) {
 }
 
 test('le panneau démarre sans projectsRoot ni workspace', async () => {
-  const handler = mount({ projectsRoot: join(sandbox, 'projects-absents'), clusterName: 'essai' })
+  const handler = mount({ projectsRoot: join(sandbox, 'projects-absents'), k8sContext: 'kind-essai' })
   const response = await call(handler, '/systeme/api/etat?refresh=1')
   assert.equal(response.statusCode, 200)
   const state = JSON.parse(response.payload)
 
-  assert.deepEqual(Object.keys(state).sort(), ['at', 'config', 'dsh', 'journal', 'k8s', 'machine', 'repos', 'stale', 'version'])
+  assert.deepEqual(Object.keys(state).sort(), ['at', 'config', 'dsh', 'journal', 'k8s', 'machine', 'reglages', 'repos', 'stale', 'version'])
+  assert.equal(state.reglages.refreshSeconds, 60)
+  assert.equal(state.reglages.k8sContext, 'kind-essai')
 
   const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
   assert.equal(state.version, version)
