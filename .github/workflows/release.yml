@@ -78,7 +78,14 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: npm version "$VERSION" --no-git-tag-version
+        run: |
+          set -euo pipefail
+          current="$(node -p "require('./package.json').version")"
+          if [ "$current" = "$VERSION" ]; then
+            echo "package.json already says $VERSION"
+            exit 0
+          fi
+          npm version "$VERSION" --no-git-tag-version
 
       - name: Publish to npm with trusted publishing
         run: npm publish --access public --provenance
@@ -91,6 +98,11 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
+          if git diff --quiet package.json; then
+            echo "package.json is already at $VERSION"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           content="$(base64 < package.json | tr -d '\n')"
           sha="$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json" --jq .sha)"
           commit="$(gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/package.json" \
