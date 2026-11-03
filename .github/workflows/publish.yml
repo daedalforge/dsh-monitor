@@ -57,6 +57,10 @@ jobs:
             echo "$name@$version is already on npm, leaving it alone"
             exit 0
           fi
+          if ! npm view "$name" version >/dev/null 2>&1; then
+            echo "::error::$name does not exist on npm yet. Trusted publishing only publishes new versions of an existing package: publish the first one with npm login and npm publish, then configure the trusted publisher."
+            exit 1
+          fi
           npm publish --access public --provenance
 
       - name: Attach the tarball to the release
@@ -65,5 +69,6 @@ jobs:
           TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
         run: |
           set -euo pipefail
+          mkdir -p dist
           npm pack --pack-destination dist
           gh release upload "$TAG" dist/*.tgz --clobber
