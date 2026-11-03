@@ -102,15 +102,17 @@ The version is never set by hand. Every push to `main` reads the commits since t
 | one carries `!` before the colon (`feat!:`, `fix!:`) or a `BREAKING CHANGE:` footer | major — `x` plus one, `y` and `z` back to zero |
 | anything else (`fix:`, `chore:`, `docs:`, a plain sentence) | patch — `z` plus one |
 
-It writes that version into `package.json` with a commit created through the GitHub API, so GitHub signs it; tags the commit; publishes to npm with provenance; and opens a GitHub release holding the tarball. With no tag yet, the version sitting in `package.json` is released as is — that is the first release. The release commit is skipped by the same trigger, so the workflow never loops.
+It writes that version into `package.json` with a commit created through the GitHub API, so GitHub signs it; tags the commit; and opens a GitHub release. The release commit is skipped by the same trigger, so the workflow never loops. With no tag yet, the version sitting in `package.json` is released as is — that is the first release.
+
+Opening the release is what publishes: a second workflow runs on `release: published`, checks the tag against `package.json`, runs the tests, publishes to npm with provenance, and attaches the tarball to the release. Publishing a release by hand from the GitHub interface therefore works the same way.
+
+The release workflow writes to `main`, which a branch ruleset guards with a pull request and a verified signature. It does so under a dedicated GitHub App, whose installation token it mints with `actions/create-github-app-token`; that app sits on the bypass list of both rulesets, so the version commit, the tag and the release land without weakening the rules. Two secrets carry the identity: `APP_ID`, and `APP_PRIVATE_KEY` holding the app's private key. The release must be opened with that app token and not with `GITHUB_TOKEN`, or the `Publish` workflow would never run.
 
 Publishing authenticates through npm trusted publishing: no token is stored in the repository, the workflow file is the credential.
 
 ```sh
-npm trust github @daedalforge/dsh-monitor --repo daedalforge/dsh-monitor --file release.yml --allow-publish
+npm trust github @daedalforge/dsh-monitor --repo daedalforge/dsh-monitor --file publish.yml --allow-publish
 ```
-
-The workflow writes to `main`, which a branch ruleset guards with a pull request and a verified signature. It does so under a dedicated GitHub App, whose installation token it mints with `actions/create-github-app-token`; that app sits on the bypass list of both rulesets, so the version commit and the tag land without weakening the rules. Two secrets carry the identity: `APP_ID`, and `APP_PRIVATE_KEY` holding the app's private key.
 
 A publish that fails can be replayed from the Actions tab, with the tag to publish as input.
 
