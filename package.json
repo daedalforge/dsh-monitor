@@ -1,6 +1,6 @@
 {
   "name": "@daedalforge/dsh-monitor",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "System panel for DeepSeek Harness: machine, runtime, working repositories and Kubernetes cluster health",
   "type": "module",
   "license": "MIT",
