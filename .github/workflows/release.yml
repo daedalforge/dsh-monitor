@@ -10,7 +10,7 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 concurrency:
@@ -31,6 +31,12 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+
+      - uses: actions/create-github-app-token@v3
+        id: app
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Use the latest npm
         run: npm install --global npm@latest
@@ -87,14 +93,11 @@ jobs:
           fi
           npm version "$VERSION" --no-git-tag-version
 
-      - name: Publish to npm with trusted publishing
-        run: npm publish --access public --provenance
-
       - name: Commit the version on main
         id: commit
         if: github.event_name != 'workflow_dispatch'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
@@ -117,7 +120,7 @@ jobs:
       - name: Tag the release
         if: github.event_name != 'workflow_dispatch'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.version.outputs.version }}
           SHA: ${{ steps.commit.outputs.sha }}
         run: |
@@ -131,11 +134,14 @@ jobs:
             -f sha="$SHA" >/dev/null
           echo "tagged v$VERSION"
 
+      - name: Publish to npm with trusted publishing
+        run: npm publish --access public --provenance
+
       - name: Pack the tarball
         run: npm pack --pack-destination dist
 
       - name: Create the GitHub release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: gh release create "v$VERSION" dist/*.tgz --title "v$VERSION" --generate-notes

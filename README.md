@@ -110,7 +110,9 @@ Publishing authenticates through npm trusted publishing: no token is stored in t
 npm trust github @daedalforge/dsh-monitor --repo daedalforge/dsh-monitor --file release.yml --allow-publish
 ```
 
-The workflow writes to `main`, which a branch ruleset guards. The commit travels through the GitHub API, so it carries GitHub's own signature and clears the signature rule; the ruleset must therefore not require a pull request. A publish that fails can be replayed from the Actions tab, with the tag to publish as input.
+The workflow writes to `main`, which a branch ruleset guards with a pull request and a verified signature. It does so under a dedicated GitHub App, whose installation token it mints with `actions/create-github-app-token`; that app sits on the bypass list of both rulesets, so the version commit and the tag land without weakening the rules. Two secrets carry the identity: `APP_ID`, and `APP_PRIVATE_KEY` holding the app's private key.
+
+A publish that fails can be replayed from the Actions tab, with the tag to publish as input.
 
 
 ## Limits
