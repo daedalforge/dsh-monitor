@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { EventEmitter } from 'node:events'
-import { mkdtemp } from 'node:fs/promises'
+import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -57,8 +57,10 @@ test('le panneau démarre sans projectsRoot ni workspace', async () => {
   assert.equal(response.statusCode, 200)
   const state = JSON.parse(response.payload)
 
-  assert.deepEqual(Object.keys(state).sort(), ['at', 'config', 'dsh', 'journal', 'k8s', 'machine', 'repos', 'stale'])
+  assert.deepEqual(Object.keys(state).sort(), ['at', 'config', 'dsh', 'journal', 'k8s', 'machine', 'repos', 'stale', 'version'])
 
+  const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+  assert.equal(state.version, version)
   assert.equal(state.repos.hidden, true)
   assert.equal(state.repos.state, 'bad')
   assert.match(state.repos.alert, /introuvable/)
