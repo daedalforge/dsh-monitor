@@ -3,6 +3,4 @@
       name: '@daedalforge/dsh-monitor'
       config:
         projectsRoot: '~/projects'
-        k8sContext: ''
-        clusterName: ''
-        costLedger: ''
+        refreshSeconds: 60
