@@ -33,6 +33,9 @@ jobs:
       - name: Use the latest npm
         run: npm install --global npm@latest
 
+      - name: Install
+        run: npm ci
+
       - name: Check the release and the package agree
         env:
           TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
