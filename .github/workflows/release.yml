@@ -3,15 +3,9 @@ name: Release
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Tag to publish again, for example v0.1.0
-        required: true
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: release
@@ -19,18 +13,17 @@ concurrency:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'Release v')
+    if: ${{ !startsWith(github.event.head_commit.message, 'Release v') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || 'main' }}
+          ref: main
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
 
       - uses: actions/create-github-app-token@v3
         id: app
@@ -38,23 +31,13 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Use the latest npm
-        run: npm install --global npm@latest
-
       - name: Test
         run: npm test
 
       - name: Pick the next version
         id: version
-        env:
-          REQUESTED: ${{ github.event.inputs.version }}
         run: |
           set -euo pipefail
-          if [ -n "${REQUESTED:-}" ]; then
-            echo "version=${REQUESTED#v}" >> "$GITHUB_OUTPUT"
-            echo "republishing ${REQUESTED#v}"
-            exit 0
-          fi
           last="$(git tag --list 'v*' --sort=-v:refname | head -1)"
           if [ -z "$last" ]; then
             version="$(node -p "require('./package.json').version")"
@@ -81,7 +64,6 @@ jobs:
           echo "$last plus a $bump change releases $x.$y.$z"
 
       - name: Set the version
-        if: github.event_name != 'workflow_dispatch'
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -95,7 +77,6 @@ jobs:
 
       - name: Commit the version on main
         id: commit
-        if: github.event_name != 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -118,7 +99,6 @@ jobs:
           echo "Release v$VERSION committed as $commit"
 
       - name: Tag the release
-        if: github.event_name != 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -134,14 +114,15 @@ jobs:
             -f sha="$SHA" >/dev/null
           echo "tagged v$VERSION"
 
-      - name: Publish to npm with trusted publishing
-        run: npm publish --access public --provenance
-
-      - name: Pack the tarball
-        run: npm pack --pack-destination dist
-
-      - name: Create the GitHub release
+      - name: Open the release
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: gh release create "v$VERSION" dist/*.tgz --title "v$VERSION" --generate-notes
+        run: |
+          set -euo pipefail
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "v$VERSION already has a release"
+            exit 0
+          fi
+          gh release create "v$VERSION" --title "v$VERSION" --generate-notes
+          echo "opened v$VERSION, the Publish workflow picks it up"
