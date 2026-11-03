@@ -72,3 +72,11 @@ test('the client carries the Dépôts tab and its drawer route', async () => {
   assert.match(client, /systeme\/api\/depot\?name=/)
   assert.match(client, /showRepos/)
 })
+
+test('the client reads the mission key of any branch prefix', () => {
+  const { plugin } = loadClient()
+  assert.equal(plugin.missionId('slv-97'), 'SLV-97')
+  assert.equal(plugin.missionId('feat/proj3-4/ajout'), 'PROJ3-4')
+  assert.equal(plugin.missionId('dependabot/npm_and_yarn/lodash-4.17.21'), '')
+  assert.equal(plugin.missionId('main'), '')
+})
