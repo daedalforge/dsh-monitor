@@ -74,6 +74,21 @@ Every action requires a confirmation naming the target and the measured impact. 
 
 No Docker volume is ever removed, no secret is read, no git write is performed, no automatic remediation runs.
 
+## Prerequisites
+
+- DeepSeek Harness `>=0.2.1-rc.5 <0.3.0-0`. The range sits in `engines.dsh`, so a host outside it refuses the plugin rather than loading a panel it was never tested against.
+- The app's own Node runtime, 20 or later. Nothing else is installed for the panel to work.
+- macOS or Linux. Windows is not supported: the machine collectors branch on `process.platform` and otherwise read procfs.
+- Optional tools. Each one enables a part of the panel; without it that part is hidden or reads `—`, never an error:
+
+| Tool | Without it |
+| --- | --- |
+| `gh`, authenticated | pull request columns show `—` |
+| `kubectl`, plus `docker` or `colima`, plus `kind` | the `Kubernetes` tab is hidden |
+| `git`, with checkouts under `projectsRoot` | the `Dépôts` tab is hidden |
+
+- No configuration file is required: the defaults (`~/projects`, a 60 s refresh, local same-origin requests only) apply as is.
+
 ## Install
 
 ```sh
@@ -85,7 +100,7 @@ Restart the application completely (Cmd+Q) — a new server route is not picked 
 From a tarball or a git checkout:
 
 ```sh
-dsh plugin --profile desktop add file:/path/to/daedalforge-dsh-monitor-0.3.0.tgz
+dsh plugin --profile desktop add file:/path/to/daedalforge-dsh-monitor-<version>.tgz
 ```
 
 Uninstall:
