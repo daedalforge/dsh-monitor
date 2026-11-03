@@ -64,3 +64,11 @@ test('the client declares one panel, its sub-views and its settings seats', () =
   assert.equal(seats.find((seat) => seat.id === 'systeme').label, 'Système')
   assert.equal(seats.some((seat) => seat.id === 'kubernetes' || seat.key === 'kubernetes'), false)
 })
+
+test('the client carries the Dépôts tab and its drawer route', async () => {
+  const client = await readFile(new URL('lib/client.js', root), 'utf8')
+  assert.match(client, /id: 'depots', label: 'Dépôts'/)
+  assert.match(client, /function DepotsPanel/)
+  assert.match(client, /systeme\/api\/depot\?name=/)
+  assert.match(client, /showRepos/)
+})
