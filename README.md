@@ -1,16 +1,18 @@
 # dsh-monitor
 
-A system panel for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): machine health, runtime state, the git repositories you work in, and a Kubernetes cluster — in one sidebar entry, without leaving the app.
+A monitoring plugin for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): machine health, runtime state, the git repositories you work in, and the Kubernetes cluster you develop on — from one sidebar entry, without leaving the app.
 
-The panel opens from the sidebar entry **Système** (order -100, first). Its interface is written in French.
+The **Système** entry carries two sub-views, switched from the tabs at the top of the panel: **Machine** answers « is this machine healthy? » in one scroll, **Kubernetes** answers « what runs in the cluster, what is degraded, and why? ». Both interfaces are written in French.
 
 ## What it shows
 
 - **Machine** — CPU, memory, disk, load average, battery, swap, a 24-minute CPU sparkline and the top processes. Memory follows the Activity Monitor definition (app + wired + compressed) instead of the naive `total - free`, which sits at ~99 % as soon as the OS keeps inactive pages. CPU is a delta over a real time window on both platforms: a `/proc/stat` sample on Linux, the second `top -l 2 -s 1` sample on macOS. Linux reads `/proc/meminfo`, `/proc/stat`, `/proc/swaps` and `/sys/class/power_supply` directly. When Colima is present, its VM disk is measured through `colima ssh -- df -kP` and reported separately from the host disk.
 - **DSH** — active sessions, running jobs, startup errors over 24 h, cache size, recent sessions, and today's cost when `costLedger` points to a JSON ledger.
 - **Repositories** — git state of every repository under `projectsRoot` (dirty, ahead/behind, last commit, other local branches).
-- **Kubernetes** — every namespace: ready nodes, active and non-ready pods, available and zero-replica deployments, jobs, statefulsets, daemonsets, suspended cronjobs, bound volumes, three reservation gauges against node allocatable, deduplicated signals (CrashLoopBackOff, ImagePullBackOff, pending pods, OOMKilled, restart thresholds, stuck rollouts, failed jobs, unbound volumes, node pressure) and recent Warning events grouped by (reason, object). The **Ressources** window lists deployments, pods, jobs, statefulsets, daemonsets, cronjobs and unbound volumes with per-namespace filtering and remediation gestures.
-- **Empty sections hide themselves** — the Kubernetes block disappears while none of docker, kind, kubectl or colima is installed; the repositories block disappears while `projectsRoot` does not exist. Both come back on their own.
+- **Machine** — disk, memory, load, battery and swap at a glance, the processor sparkline, the top processes, the runtime state (sessions, cost, jobs, errors, cache) and the git repositories.
+- **Kubernetes · contexte** — the header carries the context picker: it lists the contexts `kubectl` declares on the machine plus an automatic entry that follows the current context, and writes the choice straight to `k8sContext`. Next to it, a **Ressources** window lists deployments, pods, jobs, statefulsets, daemonsets, cronjobs and unbound volumes with per-namespace filtering and remediation gestures.
+- **Kubernetes · écran** — the cluster read as a place to work, not as an inventory. A banner states the cluster in one sentence (how many pods run, on how many nodes, how many secrets are stuck, whether a service is down); six headline figures; **À traiter** groups what is degraded by cause — one card per cause, carrying its evidence, its scope and the namespaces it touches; **Où tourne quoi** draws machine → node → four domains (Applicatif, Données, Observabilité, Plateforme) → HTTP entries, one dot per pod; the **Namespaces** table joins workloads, pods, restarts, secrets and state per namespace; **Capacité du nœud** compares reservations with allocatable; **Composants** checks context, Docker, kubectl, ingress, CoreDNS, metrics-server and external-secrets; **Activité récente** retells the last 24 h in sentences; **Comprendre les chiffres** explains each figure and opens a twelve-term glossary. A namespace opens a drawer (what to watch, pods, workloads, Azure secrets, network) and a cause opens its explanation. Every number is read from Kubernetes; a figure without a source says so instead of showing zero.
+- **Empty sections hide themselves** — the repositories block disappears while `projectsRoot` does not exist, and the cluster sections while the machine has neither docker, kind, kubectl nor colima. Both come back on their own.
 
 The panel refreshes on open, on window focus, and every 60 s while visible — no background polling. The last snapshot is cached in `localStorage` and painted immediately on the next open.
 
@@ -20,14 +22,14 @@ The panel refreshes on open, on window focus, and every 60 s while visible — n
 
 The plugin is configured on its `cordis.patch.yml` entry, from a page the package brings to **Plugins → Système**. Saving the page writes the values into the profile patch (the YAML below), so the configuration stays in the profile's own file.
 
-The page is split in three sections: **Général** first, with the panel refresh cadence, then **Dépôts git** and **Kubernetes**. The Kubernetes card of the panel carries the context picker itself: it lists the contexts `kubectl` declares on the machine, plus an automatic entry, the default, that follows the current context, and writes the choice straight to `k8sContext`. `kind-*` contexts are recognised by their prefix for the cluster check. Each of those last two opens with a switch that hides the matching card of the panel — the switch only changes what the panel shows, the collection keeps running in the background so a card comes back with its current values when switched on again.
+The page is split in three sections: **Général** first, with the panel refresh cadence, then **Dépôts git** and **Kubernetes**. The context picker sits in the header of the Kubernetes view: it lists the contexts `kubectl` declares on the machine, plus an automatic entry, the default, that follows the current context, and writes the choice straight to `k8sContext`. `kind-*` contexts are recognised by their prefix for the cluster check. Each of those last two opens with a switch that hides the matching view — the switch only changes what the panel shows, the collection keeps running in the background so the view comes back with its current values when switched on again.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `projectsRoot` | `~/projects` | Directory holding the git repositories to watch |
 | `showRepos` | `true` | Show the Dépôts card |
 | `k8sContext` | `''` | Watched `kubectl` context, chosen from the Kubernetes card of the panel among the contexts the machine detects; empty follows the current context |
-| `showK8s` | `true` | Show the Kubernetes card |
+| `showK8s` | `true` | Show the Kubernetes sections |
 | `costLedger` | `~/.dsh/storages/cost-meter/ledger.json` | Ledger written by `dsh-cost-meter` (`days.<YYYY-MM-DD>.cost`, `.calls`, `config.currency`/`config.symbol`); empty hides the cost row. Not shown on the page — override it in the YAML only when the ledger lives elsewhere |
 | `refreshSeconds` | `60` | Panel refresh cadence, in seconds, clamped between `15` and `900` |
 
@@ -96,7 +98,8 @@ Files under `~/.dsh/storages/dsh-monitor/` stay in place; delete them by hand if
 ## Architecture
 
 - `lib/index.js` — server side: collectors, thresholds, actions, journal. Routes `/systeme/api/etat`, `/systeme/api/disque`, `/systeme/api/action`, `/systeme/api/journal`, `/systeme/api/reglages`. Requests must be local and same-origin; anything else gets a 403.
-- `lib/client.js` — the React panel loaded by the DSH client, styles scoped under `.dsh-systeme`.
+- `lib/k8s.js` — the Kubernetes reading: raw `kubectl` objects in, one model out (counters, capacity, causes, namespace rows, topology, components, activity). Pure and unit-tested, so the panel logic is verified without a live cluster.
+- `lib/client.js` — the React panel loaded by the DSH client — `Système`, with its `Machine` and `Kubernetes` views — styles scoped under `.dsh-systeme` and `.dsh-kube`.
 - `cordis.patch.yml` — inserts the `systeme` entry.
 
 ## Releases
@@ -135,7 +138,7 @@ A publish that fails can be replayed from the Actions tab, with the tag to publi
 
 ## Limits
 
-- Machine metrics use macOS tools (`vm_stat`, `sysctl`, `pmset`, `top`) or procfs/sysfs on Linux; `ps` and `df` are used on both. Kubernetes inspection assumes `docker` (or `colima`), `kind` and `kubectl`; the cluster itself is never created, started or stopped by the panel.
+- Machine metrics use macOS tools (`vm_stat`, `sysctl`, `pmset`, `top`) or procfs/sysfs on Linux; `ps` and `df` are used on both. Kubernetes inspection assumes `docker` (or `colima`), `kind` and `kubectl`; the cluster itself is never created, started or stopped by the panel. The plugin reads nodes, pods, deployments, statefulsets, daemonsets, jobs, cronjobs, namespaces, PVCs, services, ingresses and external secrets, plus Warning events, and needs no metrics-server: reservations come from the pod specs, not from measured usage.
 - No alerting outside the app, no metric history, no automatic remediation.
 - The panel reads the disk and the repositories; it never modifies a git-tracked file.
 - Stopping a job is only available for the current session.
