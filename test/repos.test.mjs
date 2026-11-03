@@ -12,6 +12,7 @@ const {
   collectPrs,
   finalizeRepos,
   buildCauses,
+  missionId,
   collectDepot,
 } = (await import('../lib/index.js')).__internals
 
@@ -170,4 +171,16 @@ test('collectDepot rend les derniers commits et le statut brut', async () => {
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test('missionId lit la clé du ticket sans liste de préfixes', () => {
+  assert.equal(missionId('slv-97'), 'SLV-97')
+  assert.equal(missionId('SLV-97'), 'SLV-97')
+  assert.equal(missionId('ABC-12'), 'ABC-12')
+  assert.equal(missionId('feat/proj3-4/ajout'), 'PROJ3-4')
+  assert.equal(missionId('dependabot/npm_and_yarn/lodash-4.17.21'), '')
+  assert.equal(missionId('release/1.2'), '')
+  assert.equal(missionId('main'), '')
+  assert.equal(missionId(''), '')
+  assert.equal(missionId(undefined), '')
 })
