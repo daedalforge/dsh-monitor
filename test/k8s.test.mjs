@@ -129,7 +129,7 @@ function fixture() {
   }
 }
 
-const env = { context: 'kind-devspace', contexts: ['kind-devspace'], watched: 'kind-devspace', dockerUp: true, darwin: true, colima: true, kind: true, kubectl: true, k9s: true, kubectx: true }
+const env = { context: 'kind-devspace', contexts: ['kind-devspace'], watched: 'kind-devspace', runtime: 'docker', runtimeUp: true, os: 'Mac', colima: true, kubectl: true, k9s: true, kubectx: true }
 
 test('the model is built from the cluster without inventing numbers', () => {
   const model = buildK8sModel({ raw: fixture(), env, config: {}, now })
@@ -196,14 +196,33 @@ test('capacity compares requests with the allocatable of the node', () => {
   assert.equal(model.capacity.pods.allocatable, 110)
 })
 
-test('the panel reports the cluster as stopped when docker is down', () => {
-  const model = buildK8sModel({ raw: {}, env: { ...env, dockerUp: false, down: true }, config: {}, now })
+test('the panel reports the cluster as stopped when the API does not answer', () => {
+  const model = buildK8sModel({ raw: {}, env: { ...env, runtimeUp: false, down: true }, config: {}, now })
 
   assert.equal(model.state, 'down')
   assert.equal(model.alert, 'Cluster arrêté')
   assert.equal(model.down, true)
   assert.equal(model.counts.pods.total, 0)
   assert.equal(model.kpis.every((kpi) => kpi.value.startsWith('0')), true)
+})
+
+test('a remote cluster without a local runtime keeps the runtime row out', () => {
+  const model = buildK8sModel({ raw: { nodes: [node('devspace-control-plane', 'v1.31.0')] }, env: { ...env, runtime: '', runtimeUp: false, colima: false, os: 'Linux' }, config: {}, now })
+
+  assert.equal(model.checks.some((check) => check.id === 'runtime'), false)
+  assert.equal(model.topology.machine.runtime, null)
+  assert.equal(model.topology.machine.host, 'Linux')
+  assert.equal(model.topology.machine.note, 'Aucun moteur de conteneurs local.')
+})
+
+test('the runtime found on the machine is the one the panel names', () => {
+  const model = buildK8sModel({ raw: { nodes: [node('devspace-control-plane', 'v1.31.0')] }, env: { ...env, runtime: 'podman', colima: false }, config: {}, now })
+
+  assert.equal(model.topology.machine.runtime, 'podman')
+  assert.equal(model.topology.machine.runtimeUp, true)
+  assert.equal(model.topology.machine.note, 'podman répond.')
+  assert.equal(model.checks.find((check) => check.id === 'runtime').label, 'podman')
+  assert.equal(model.checks.find((check) => check.id === 'runtime').state, 'ok')
 })
 
 test('the keys shown by the header follow the counts', () => {
