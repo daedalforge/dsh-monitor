@@ -51,18 +51,16 @@ function loadClient() {
   return { plugin, seats, injected }
 }
 
-test('the client declares the two panels and their settings seats', () => {
+test('the client declares one panel, its sub-views and its settings seats', () => {
   const { plugin, seats } = loadClient()
 
   assert.deepEqual(plugin.inject, ['slots'])
   assert.deepEqual(seats.map((seat) => `${seat.name}:${seat.id ?? seat.key}`), [
     'sidebar.panellist:systeme',
     'main:systeme',
-    'sidebar.panellist:kubernetes',
-    'main:kubernetes',
     'plugins.bundle.config:@daedalforge/dsh-monitor',
     'plugins.row.config:@daedalforge/dsh-monitor#systeme',
   ])
-  assert.equal(seats.find((seat) => seat.key === 'kubernetes').name, 'main')
-  assert.equal(seats.find((seat) => seat.id === 'kubernetes').label, 'Kubernetes')
+  assert.equal(seats.find((seat) => seat.id === 'systeme').label, 'Système')
+  assert.equal(seats.some((seat) => seat.id === 'kubernetes' || seat.key === 'kubernetes'), false)
 })
