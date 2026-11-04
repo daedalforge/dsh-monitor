@@ -57,7 +57,8 @@ test('le panneau démarre sans projectsRoot ni workspace', async () => {
   assert.equal(response.statusCode, 200)
   const state = JSON.parse(response.payload)
 
-  assert.deepEqual(Object.keys(state).sort(), ['at', 'config', 'dsh', 'journal', 'k8s', 'machine', 'reglages', 'repos', 'stale', 'version'])
+  assert.deepEqual(Object.keys(state).sort(), ['apps', 'at', 'config', 'dsh', 'journal', 'k8s', 'machine', 'platform', 'reglages', 'repos', 'stale', 'version'])
+  assert.equal(state.platform, process.platform === 'darwin' ? 'macos' : process.platform)
   assert.equal(state.reglages.refreshSeconds, 60)
   assert.equal(state.reglages.k8sContext, 'kind-essai')
 

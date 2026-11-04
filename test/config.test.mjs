@@ -63,13 +63,13 @@ async function reglages(config, events) {
   return (await state(config, events)).reglages
 }
 
-test('la page de réglages publie six champs volatils', () => {
+test('la page de réglages publie huit champs volatils', () => {
   const schema = Config.toJSON()
   const text = JSON.stringify(schema)
-  for (const key of ['projectsRoot', 'k8sContext', 'costLedger', 'refreshSeconds', 'showRepos', 'showK8s']) {
+  for (const key of ['projectsRoot', 'k8sContext', 'costLedger', 'refreshSeconds', 'showRepos', 'showK8s', 'showApps', 'showBrew']) {
     assert.match(text, new RegExp(`"${key}"`))
   }
-  assert.equal((text.match(/"volatile":true/g) ?? []).length, 6)
+  assert.equal((text.match(/"volatile":true/g) ?? []).length, 8)
 })
 
 test('les cartes s’affichent par défaut et se masquent à l’interrupteur', async () => {
