@@ -129,10 +129,10 @@ const row = (name, state, extra = {}) => ({
   ...extra,
 })
 
-function mount(data = fixture) {
+function mount(data = fixture, options = {}) {
   const { React, state } = hooks()
   const store = new Map([
-    ['dsh-monitor:tab', 'applications'],
+    ['dsh-monitor:tab', options.tab ?? 'applications'],
     ['dsh-monitor:etat', JSON.stringify({ data: fixture, at: Date.parse(fixture.at) || Date.now() })],
   ])
   const windowStub = {
@@ -166,6 +166,11 @@ function mount(data = fixture) {
     if (key.includes('/systeme/api/etat')) return { ok: true, status: 200, json: async () => data }
     if (key.includes('/systeme/api/app/footprint')) return { ok: true, status: 200, json: async () => footprint }
     if (key.includes('/systeme/api/action')) return { ok: true, status: 200, json: async () => ({ receipt: { name: 'Slack', bytes: 0, footprint } }) }
+    if (key.includes('/systeme/api/disque')) {
+      if (options.disque === 'pending') return new Promise(() => {})
+      if (options.disque === 'error') return { ok: false, status: 503, json: async () => ({ error: 'docker system df a expiré' }) }
+      return { ok: true, status: 200, json: async () => options.disque }
+    }
     return { ok: false, status: 404, json: async () => ({ error: 'pas de route' }) }
   }
 
@@ -310,9 +315,94 @@ async function brewScenarios() {
   console.log('carte et puce filtrant sur les applications Homebrew, carte de synchronisation comprise')
 }
 
+const diskPayload = {
+  checkedAt: '2026-11-05T07:13:58.485Z',
+  total: 243451037,
+  categories: [
+    { id: 'images', label: 'Images', bytes: 82585846, reclaimable: 41000000 },
+    { id: 'build-cache', label: 'Cache de construction', bytes: 12345678, reclaimable: 0 },
+  ],
+  categoriesError: '',
+  colima: {
+    available: true,
+    docker: { mount: '/var/lib/docker', used: 82145000, free: 123450000, total: 205595000, percent: 40 },
+  },
+  items: [
+    { id: 'docker', label: 'Docker', bytes: 82585846, detail: 'images et cache, sans volumes' },
+    { id: 'cache-dsh', label: 'Cache DSH', bytes: 16571076, detail: '~/.dsh/cache' },
+    {
+      id: 'artifacts',
+      label: 'Artefacts',
+      bytes: 144294115,
+      detail: '2 dossiers',
+      targets: [{ repo: 'manager', path: 'dist', label: '2026-09-30 · dist', bytes: 144294115 }],
+    },
+  ],
+}
+
+const dialogOf = (tree) => nodes(tree).find((node) => node.props?.role === 'dialog' && node.props?.['aria-label'] === 'Libérer de l’espace')
+const spinOf = (tree) => nodes(tree).find((node) => String(node.props?.className ?? '') === 'sync-spin')
+const diskButtonOf = (tree) => nodes(tree).find((node) => node.tag === 'a' && String(node.props.className ?? '') === 'more' && text(node).includes('Libérer de l’espace'))
+
+async function diskCase(options) {
+  const { settle } = mount(fixture, { tab: 'machine', ...options })
+  const panel = await settle(props)
+  const opener = diskButtonOf(panel)
+  assert.ok(opener, 'la carte Machine porte l’entrée « Libérer de l’espace »')
+  opener.props.onClick({ preventDefault() {} })
+  return { tree: await settle(props), settle }
+}
+
+const closeOf = (tree) => nodes(tree).find((node) => node.tag === 'button' && String(node.props.className ?? '') === 'btn-o' && text(node) === 'Fermer')
+
+async function diskScenarios() {
+  // Given la modale ouverte sur une analyse encore en cours
+  const analysing = await diskCase({ disque: 'pending' })
+  const loadingText = panelText(analysing.tree)
+  assert.ok(spinOf(analysing.tree), 'l’analyse porte le spinner du panneau')
+  assert.match(loadingText, /Analyse des cibles…/, 'l’analyse est nommée')
+  assert.match(loadingText, /démarrée à \d{1,2}:\d{2}:\d{2}/, 'l’heure de départ est affichée')
+  assert.match(loadingText, /place Docker, disque Colima et cibles inactives des dépôts/, 'ce qui est mesuré est nommé')
+  assert.doesNotMatch(loadingText, /Total repéré/, 'aucun chiffre n’est affiché avant le relevé')
+  const busyDialog = dialogOf(analysing.tree)
+  assert.ok(busyDialog, 'la modale du disque est un dialogue nommé')
+  assert.equal(busyDialog.props['aria-busy'], 'true', 'la modale se déclare occupée pendant l’analyse')
+
+  // When le relevé arrive
+  const read = await diskCase({ disque: diskPayload })
+  const readText = panelText(read.tree)
+  assert.equal(spinOf(read.tree), undefined, 'le loader disparaît au relevé')
+  assert.doesNotMatch(readText, /Analyse des cibles…/, 'le libellé d’analyse s’efface')
+  assert.match(readText, /Total repéré : 232,2 Mo/, 'le total repéré prend la place du loader')
+  assert.match(readText, /Répartition du moteur/, 'la répartition Docker est rendue')
+  assert.match(readText, /Disque de Colima/, 'le disque Colima est rendu')
+  assert.equal(dialogOf(read.tree).props['aria-busy'], 'false', 'la modale n’est plus occupée')
+
+  // When l’analyse échoue
+  const failed = await diskCase({ disque: 'error' })
+  const failedText = panelText(failed.tree)
+  assert.equal(spinOf(failed.tree), undefined, 'l’erreur ne laisse pas le loader en place')
+  assert.match(failedText, /docker system df a expiré/, 'l’erreur est nommée')
+  assert.ok(
+    nodes(failed.tree).some((node) => String(node.props.className ?? '') === 'errbar'),
+    'l’erreur garde son bandeau',
+  )
+
+  // When la modale est fermée pendant l’analyse
+  const closer = closeOf(analysing.tree)
+  assert.ok(closer, 'le pied garde son bouton Fermer pendant l’analyse')
+  closer.props.onClick()
+  const closed = await analysing.settle(props)
+  assert.equal(dialogOf(closed), undefined, 'fermer pendant l’analyse referme la modale')
+  assert.doesNotMatch(panelText(closed), /Analyse des cibles…/, 'le loader part avec la modale')
+
+  console.log('modale du disque : loader d’analyse, relevé, erreur et fermeture pendant l’analyse')
+}
+
 async function main() {
   await filterScenarios()
   await brewScenarios()
+  await diskScenarios()
 
   const { seats, settle } = mount()
   assert.ok(seats.some((seat) => seat.options.name === 'main'), 'le panneau main est enregistré')
