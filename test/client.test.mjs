@@ -80,3 +80,36 @@ test('the client reads the mission key of any branch prefix', () => {
   assert.equal(plugin.missionId('dependabot/npm_and_yarn/lodash-4.17.21'), '')
   assert.equal(plugin.missionId('main'), '')
 })
+
+test('le panneau Applications porte la suppression, sa modale et son relevé', async () => {
+  const client = await readFile(new URL('lib/client.js', root), 'utf8')
+  assert.match(client, /function RemoveModal/)
+  assert.match(client, /systeme\/api\/app\/footprint/)
+  assert.match(client, /famille: 'apps'/)
+  assert.match(client, /action: 'supprimer'/)
+  assert.match(client, /onRemove: setRemove/)
+  assert.match(client, /className: `cmodal rmodal/)
+})
+
+test('the Applications view filters on invalid bundles from the headline figure', async () => {
+  const client = await readFile(new URL('lib/client.js', root), 'utf8')
+  assert.match(client, /chip\('invalid', 'Invalides'\)/)
+  assert.match(client, /if \(filter === 'invalid'\) return item\.state === 'invalid'/)
+  assert.match(client, /git-kpi action/)
+  assert.match(client, /className: 'git-empty'/)
+  assert.match(client, /block: 'nearest'/)
+})
+
+test('la synchronisation Homebrew passe par une modale qui bloque pendant l’action', async () => {
+  const client = await readFile(new URL('lib/client.js', root), 'utf8')
+  assert.match(client, /function SyncModal/)
+  assert.match(client, /systeme\/api\/homebrew\/plan/)
+  assert.match(client, /famille: 'homebrew', action: 'synchroniser'/)
+  assert.match(client, /const close = \(\) => \{ if \(busy\) return; onClose\(\) \}/)
+  assert.match(client, /aria-busy': busy \? 'true' : 'false'/)
+  assert.match(client, /sync-spin/)
+  assert.match(client, /chip\('brew', 'Homebrew'\)/)
+  assert.match(client, /onClick: close, disabled: busy \}, 'Annuler'\)/)
+  assert.match(client, /à lancer au terminal/)
+  assert.match(client, /navigator\.clipboard\.writeText\(text\)/)
+})

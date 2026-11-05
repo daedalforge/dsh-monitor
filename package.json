@@ -52,7 +52,7 @@
   },
   "homepage": "https://github.com/daedalforge/dsh-monitor#readme",
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs && node test/client-render.check.mjs"
   },
   "dsh": {
     "bundle": {
