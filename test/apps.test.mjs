@@ -4,7 +4,7 @@ import { access, lstat, mkdir, mkdtemp, readFile, readdir, readlink, rm, stat, s
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const { collectApps, collectAppDetail } = (await import('../lib/index.js')).__internals
+const { collectApps, collectAppDetail, collectAppFootprint, buildBrewSyncPlan, compareVersions, syncBrew } = (await import('../lib/index.js')).__internals
 
 function plist({ version, executable }) {
   return JSON.stringify({
@@ -142,4 +142,240 @@ test('sans Homebrew interrogé, les applications restent lisibles et la cause es
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+function footprintEnv(root, options = {}) {
+  const base = env(root)
+  return {
+    ...base,
+    tool: async (name) => (['du', 'pkgutil', 'pgrep'].includes(name) ? `/usr/bin/${name}` : ''),
+    run: async (command, args) => {
+      if (command === 'du') {
+        const paths = args.filter((value) => !value.startsWith('-'))
+        return { ok: true, stdout: paths.map((path) => `1024\t${path}`).join('\n'), stderr: '' }
+      }
+      if (command === 'pkgutil') {
+        return options.pkgId
+          ? { ok: true, stdout: `volume: /\npath: ${args[1]}\n\npkgid: ${options.pkgId}\n`, stderr: '' }
+          : { ok: false, stdout: '', stderr: '', error: 'aucun reçu' }
+      }
+      if (command === 'pgrep') return options.pid ? { ok: true, stdout: `${options.pid}\n`, stderr: '' } : { ok: false, stdout: '', stderr: '', error: 'aucun processus' }
+      return { ok: false, stdout: '', stderr: '', error: 'indisponible en test' }
+    },
+  }
+}
+
+test('le relevé nomme les données, la configuration et ce qui reste', async () => {
+  const root = await sandbox()
+  try {
+    await bundle(join(root, 'Applications'), 'Alpha', { version: '1.2.0', executable: 'Alpha' })
+    await mkdir(join(root, 'Library', 'Caches', 'test.alpha'), { recursive: true })
+    await mkdir(join(root, 'Library', 'Application Support', 'Alpha'), { recursive: true })
+    await mkdir(join(root, 'Library', 'Group Containers', 'group.test.alpha.shared'), { recursive: true })
+    await mkdir(join(root, 'Library', 'Preferences'), { recursive: true })
+    await writeFile(join(root, 'Library', 'Preferences', 'test.alpha.plist'), 'x')
+    const state = await collectApps(env(root))
+    const footprint = await collectAppFootprint(footprintEnv(root), 'Alpha', state)
+
+    assert.equal(footprint.blocked, null)
+    assert.equal(footprint.app.bytes, 1048576)
+    assert.deepEqual(footprint.data.map((item) => item.tag), ['', 'nom'])
+    assert.match(footprint.data[0].path, /Library\/Caches\/test\.alpha$/)
+    assert.match(footprint.data[1].path, /Application Support\/Alpha$/)
+    assert.equal(footprint.config.length, 1)
+    assert.match(footprint.config[0].path, /Preferences\/test\.alpha\.plist$/)
+    assert.equal(footprint.keep.length, 3)
+    assert.match(footprint.keep[0].path, /group\.test\.alpha\.shared$/)
+    assert.equal(footprint.keep[2].path, '/Library/Application Support')
+    assert.equal(footprint.totals.count, 4)
+    assert.equal(footprint.totals.bytes, 4194304)
+    assert.equal(footprint.totals.places, 4)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('le relevé refuse un bundle de macOS et nomme le paquet qui possède un bundle', async () => {
+  const root = await sandbox()
+  try {
+    await mkdir(join(root, 'System', 'Applications'), { recursive: true })
+    await bundle(join(root, 'System', 'Applications'), 'Safari', { version: '17.0', executable: 'Safari' })
+    await symlink(join(root, 'System', 'Applications', 'Safari.app'), join(root, 'Applications', 'Safari.app'))
+    await bundle(join(root, 'Applications'), 'Zeta', { version: '6.0.0', executable: 'Zeta' })
+    const system = await collectApps(env(root))
+
+    const safari = await collectAppFootprint(footprintEnv(root), 'Safari', system)
+    assert.equal(safari.blocked.code, 'system')
+    assert.equal(safari.pkgId, '')
+
+    const zeta = await collectAppFootprint(footprintEnv(root, { pkgId: 'com.example.zeta' }), 'Zeta', system)
+    assert.equal(zeta.blocked.code, 'pkg')
+    assert.match(zeta.blocked.reason, /com\.example\.zeta/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('le relevé dit qu’une application tourne encore', async () => {
+  const root = await sandbox()
+  try {
+    await bundle(join(root, 'Applications'), 'Omega', { version: '7.0.0', executable: 'Omega' })
+    const state = await collectApps(env(root))
+    const idle = await collectAppFootprint(footprintEnv(root), 'Omega', state)
+    assert.equal(idle.running.on, false)
+    const busy = await collectAppFootprint(footprintEnv(root, { pid: 4242 }), 'Omega', state)
+    assert.equal(busy.running.on, true)
+    assert.deepEqual(busy.running.pids, [4242])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+function brewEnv(root) {
+  const base = env(root)
+  return {
+    ...base,
+    brew: true,
+    tool: async (name) => (name === 'brew' ? '/opt/homebrew/bin/brew' : ''),
+    run: async (command, args) => {
+      if (command === 'plutil') {
+        try {
+          return { ok: true, stdout: await readFile(args[args.length - 1], 'utf8'), stderr: '' }
+        } catch (error) {
+          return { ok: false, stdout: '', stderr: String(error), error: String(error) }
+        }
+      }
+      const line = args.join(' ')
+      if (!command.endsWith('brew')) return { ok: false, stdout: '', stderr: 'indisponible en test', error: 'indisponible en test' }
+      if (line === '--version') return { ok: true, stdout: 'Homebrew 4.6.0\ntap: /opt/homebrew', stderr: '' }
+      if (line === 'list --formula --versions') return { ok: true, stdout: 'foo 1.0\nbar 2.0\n', stderr: '' }
+      if (line === 'list --cask --versions') return { ok: true, stdout: 'bruno 4.2.0\ngoogle-chrome 156.0\n', stderr: '' }
+      if (line === 'outdated --cask --greedy --json=v2') {
+        return {
+          ok: true,
+          stdout: JSON.stringify({
+            casks: [
+              { name: 'bruno', installed_versions: ['4.2.0'], current_version: '4.3.0' },
+              { name: 'google-chrome', installed_versions: ['156.0'], current_version: '157.0' },
+            ],
+          }),
+          stderr: '',
+        }
+      }
+      if (line === 'outdated --json=v2') {
+        return {
+          ok: true,
+          stdout: JSON.stringify({ formulae: [{ name: 'foo', installed_versions: ['1.0'], current_version: '2.0' }] }),
+          stderr: '',
+        }
+      }
+      if (line === '--repository') return { ok: true, stdout: '/opt/homebrew', stderr: '' }
+      return { ok: false, stdout: '', stderr: 'indisponible en test', error: 'indisponible en test' }
+    },
+  }
+}
+
+test('le relevé nomme les formules en retard et garde les casks à part', async () => {
+  const root = await sandbox()
+  try {
+    await bundle(join(root, 'Applications'), 'Bruno', { version: '4.3.0', executable: 'Bruno' })
+    await bundle(join(root, 'Applications'), 'Google Chrome', { version: '156.0', executable: 'Google Chrome' })
+    const state = await collectApps(brewEnv(root))
+    const byName = Object.fromEntries(state.apps.map((app) => [app.name, app]))
+
+    assert.equal(state.brew.present, true)
+    assert.equal(state.brew.outdatedFormulae.length, 1)
+    assert.equal(state.brew.outdatedFormulae[0].name, 'foo')
+    assert.equal(state.counts.formulae, 2)
+    assert.equal(state.counts.formulaeOutdated, 1)
+    assert.equal(state.counts.casksOutdated, 2)
+    assert.equal(byName.Bruno.state, 'desync')
+    assert.equal(byName.Bruno.cask.token, 'bruno')
+    assert.equal(byName.Bruno.cask.latest, '4.3.0')
+    assert.equal(byName['Google Chrome'].state, 'outdated')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('le plan de synchronisation écarte un cask dont le bundle dépasse la recette', () => {
+  const state = {
+    brew: {
+      outdatedCasks: [
+        { token: 'bruno', installed: '4.2.0', latest: '4.3.0' },
+        { token: 'ghostty', installed: '1.3.1', latest: '1.4.0' },
+      ],
+      outdatedFormulae: [{ name: 'foo', installed: '1.0', latest: '2.0' }],
+    },
+    apps: [
+      { name: 'Bruno', version: '4.4.0', cask: { token: 'bruno' } },
+      { name: 'Ghostty', version: '1.2.0', cask: { token: 'ghostty' } },
+    ],
+  }
+  const plan = buildBrewSyncPlan(state)
+  assert.deepEqual(plan.formulae.map((item) => item.name), ['foo'])
+  assert.deepEqual(plan.casks.map((item) => item.token), ['ghostty'])
+  assert.deepEqual(plan.skipped.map((item) => item.token), ['bruno'])
+  assert.equal(plan.empty, false)
+  assert.deepEqual(plan.steps.map((step) => step.id), ['update', 'formula', 'cask:ghostty'])
+  assert.deepEqual(plan.steps[2].args, ['upgrade', '--cask', '--greedy', 'ghostty'])
+
+  const nothing = buildBrewSyncPlan({ brew: { outdatedCasks: [], outdatedFormulae: [] }, apps: [] })
+  assert.equal(nothing.empty, true)
+  assert.deepEqual(nothing.steps, [])
+})
+
+test('les versions se comparent segment par segment, suffixes ignorés', () => {
+  assert.equal(compareVersions('1.4.0', '1.3.1'), 1)
+  assert.equal(compareVersions('2026.8.2115.0', '2026.6.822.0'), 1)
+  assert.equal(compareVersions('4.3.0', '4.3.0'), 0)
+  assert.equal(compareVersions('4.2.0', '4.3.0'), -1)
+})
+
+async function planOf() {
+  return {
+    brew: {
+      present: true,
+      outdatedCasks: [{ token: 'ghostty', installed: '1.3.1', latest: '1.4.0' }],
+      outdatedFormulae: [{ name: 'foo', installed: '1.0', latest: '2.0' }],
+    },
+    apps: [],
+    counts: {},
+  }
+}
+
+test('un brew update en échec arrête les mises à jour, sans les lancer', async () => {
+  const calls = []
+  const outcome = await syncBrew({
+    snapshot: await planOf(),
+    brew: '/opt/homebrew/bin/brew',
+    run: async (command, args) => {
+      calls.push(args.join(' '))
+      return { ok: false, stdout: '', stderr: 'boom' }
+    },
+    collect: async () => ({ counts: { formulaeOutdated: 1, casksOutdated: 1, desync: 0 } }),
+  })
+  assert.deepEqual(calls, ['update'])
+  assert.deepEqual(outcome.failed, ['update'])
+  assert.equal(outcome.steps.filter((step) => step.skipped).length, 2)
+  assert.equal(outcome.residual.casksOutdated, 1)
+})
+
+test('un upgrade de formule en échec laisse le cask se faire', async () => {
+  const calls = []
+  const outcome = await syncBrew({
+    snapshot: await planOf(),
+    brew: '/opt/homebrew/bin/brew',
+    run: async (command, args) => {
+      calls.push(args.join(' '))
+      if (args[0] === 'update') return { ok: true, stdout: 'Updated 1 tap', stderr: '' }
+      if (args[1] === '--formula') return { ok: false, stdout: '', stderr: 'foo: échec' }
+      return { ok: true, stdout: 'ghostty 1.3.1 -> 1.4.0', stderr: '' }
+    },
+    collect: async () => ({ counts: { formulaeOutdated: 1, casksOutdated: 0, desync: 0 } }),
+  })
+  assert.deepEqual(calls, ['update', 'upgrade --formula', 'upgrade --cask --greedy ghostty'])
+  assert.deepEqual(outcome.failed, ['formula'])
+  assert.equal(outcome.steps.find((step) => step.id === 'cask:ghostty').ok, true)
+  assert.equal(outcome.residual.formulaeOutdated, 1)
 })

@@ -1,0 +1,1106 @@
+{
+ "at": "2026-11-04T14:36:57.237Z",
+ "version": "0.6.0",
+ "platform": "darwin",
+ "stale": false,
+ "config": {
+  "disk": {
+   "attention": 20,
+   "alerte": 10
+  },
+  "memoire": {
+   "attention": 80,
+   "alerte": 90
+  },
+  "charge": {
+   "coefAttention": 1,
+   "coefAlerte": 2
+  },
+  "batterie": {
+   "attention": 20,
+   "alerte": 10
+  },
+  "depots": {
+   "attentionJours": 3,
+   "alerteJours": 7
+  },
+  "pods": {
+   "attentionRedemarrages": 2,
+   "alerteRedemarrages": 5
+  }
+ },
+ "reglages": {
+  "projectsRoot": "/Users/slucienvauthier/projects",
+  "k8sContext": "",
+  "costLedger": "/Users/slucienvauthier/.dsh/storages/cost-meter/ledger.json",
+  "refreshSeconds": 60,
+  "showRepos": true,
+  "showK8s": true,
+  "showApps": true,
+  "showBrew": true
+ },
+ "k8s": {
+  "hidden": true
+ },
+ "repos": {
+  "hidden": true
+ },
+ "journal": [],
+ "dsh": {
+  "state": "warn",
+  "alert": "51 erreur(s)",
+  "detail": "runtime DSH",
+  "cost": {
+   "amount": 5.055255132,
+   "currency": "USD",
+   "symbol": "$",
+   "calls": 4055,
+   "label": "Aujourd'hui",
+   "detail": "4055 appels"
+  },
+  "sessions": {
+   "count": 7,
+   "items": [
+    {
+     "id": "session-2a98b9dd-5a4d-4b8e-81d7-e65c0368aa84",
+     "label": "konoha",
+     "detail": "session- · 0 min",
+     "ageMin": 0,
+     "active": true
+    },
+    {
+     "id": "session-c7be7015-d588-477c-b0bb-62c432509c5a",
+     "label": "konoha",
+     "detail": "session- · 0 min",
+     "ageMin": 0,
+     "active": true
+    },
+    {
+     "id": "session-c3a1a8fa-75e8-44ca-aa26-a0fe886d7362",
+     "label": "konoha",
+     "detail": "session- · 3 min",
+     "ageMin": 3,
+     "active": true
+    },
+    {
+     "id": "52876e2c-5dfa-4aec-8a5d-db9dfa27b26e",
+     "label": "konoha",
+     "detail": "52876e2c · 11 min",
+     "ageMin": 11,
+     "active": true
+    },
+    {
+     "id": "32d9b586-40de-4445-903e-254542635587",
+     "label": "konoha",
+     "detail": "32d9b586 · 12 min",
+     "ageMin": 12,
+     "active": true
+    },
+    {
+     "id": "session-c0df8f4f-6536-4fdd-ba2c-e94632d3da7a",
+     "label": "konoha",
+     "detail": "session- · 12 min",
+     "ageMin": 12,
+     "active": true
+    }
+   ],
+   "label": "7 session(s)",
+   "detail": "actives · 15 min"
+  },
+  "errors": {
+   "count": 51,
+   "label": "51 erreur(s)",
+   "detail": "24 h · 6 log(s)",
+   "items": [
+    "WARNING: Raw diagnostics may contain configuration or credential values from plugin errors. Review before sharing.",
+    "error: StartupError: dsh: startup failed: 2 required plugins did not activate",
+    "Failed plugins (1):",
+    "Error: listen EADDRINUSE: address already in use 127.0.0.1:5599",
+    "[message]: 'dsh: startup failed: 2 required plugins did not activate\\n' +"
+   ],
+   "state": "warn"
+  },
+  "cache": {
+   "bytes": 16571076,
+   "label": "15,8 Mo",
+   "detail": "~/.dsh/cache"
+  },
+  "process": {
+   "pid": 72953,
+   "rss": 1011417088,
+   "cpu": 38,
+   "name": "node"
+  }
+ },
+ "machine": {
+  "at": "2026-11-04T14:36:41.030Z",
+  "state": "warn",
+  "alert": "1 attention",
+  "alerts": 0,
+  "warnings": 1,
+  "cpu": 98.6,
+  "cpuCount": 8,
+  "cpuHistory": [
+   98.6
+  ],
+  "memory": {
+   "total": 34359738368,
+   "used": 29227712512,
+   "free": 163856384,
+   "percent": 85,
+   "app": 18036916224,
+   "wired": 2817163264,
+   "compressed": 8373633024,
+   "cached": 4172955648,
+   "active": 11194499072
+  },
+  "disk": {
+   "total": 494384795648,
+   "used": 19085496320,
+   "free": 114066776064,
+   "freePct": 23.072468463454747,
+   "label": "libres"
+  },
+  "colima": {
+   "available": true,
+   "root": {
+    "mount": "/",
+    "total": 19682557952,
+    "used": 1555521536,
+    "free": 18110259200,
+    "percent": 8
+   },
+   "docker": {
+    "mount": "/var/lib/docker",
+    "total": 105087164416,
+    "used": 48959823872,
+    "free": 50741960704,
+    "percent": 50
+   },
+   "mount": {
+    "mount": "/var/lib/docker",
+    "total": 105087164416,
+    "used": 48959823872,
+    "free": 50741960704,
+    "percent": 50
+   },
+   "freePct": 48.28559318922331,
+   "state": "ok"
+  },
+  "load": {
+   "one": 6.02587890625,
+   "five": 6.708984375,
+   "fifteen": 8.59130859375,
+   "ratio": 0.75323486328125
+  },
+  "swap": {
+   "total": 2147483648,
+   "used": 1203440189
+  },
+  "battery": {
+   "percent": 80,
+   "charging": true
+  },
+  "rows": [
+   {
+    "id": "cpu",
+    "label": "Processeur",
+    "value": "98.6 %",
+    "percent": 98.6,
+    "state": "ok",
+    "detail": "8 cœurs"
+   },
+   {
+    "id": "memoire",
+    "label": "Mémoire",
+    "value": "85 %",
+    "percent": 85,
+    "state": "warn",
+    "detail": "27,2 Go / 32,0 Go · actif 13,0 Go, compressé 7,8 Go"
+   },
+   {
+    "id": "disque",
+    "label": "Disque libre",
+    "value": "23,1 %",
+    "percent": 23.072468463454747,
+    "state": "ok",
+    "detail": "106,2 Go / 460,4 Go"
+   },
+   {
+    "id": "colima",
+    "label": "Disque Colima",
+    "value": "48,3 % libres",
+    "percent": 48.28559318922331,
+    "state": "ok",
+    "detail": "45,6 Go utilisés / 97,9 Go · 47,3 Go libres"
+   },
+   {
+    "id": "charge",
+    "label": "Charge",
+    "value": "6,0",
+    "percent": 75.323486328125,
+    "state": "ok",
+    "detail": "0,8× 8 cœurs"
+   },
+   {
+    "id": "batterie",
+    "label": "Batterie",
+    "value": "80 %",
+    "percent": 80,
+    "state": "ok",
+    "detail": "en charge"
+   },
+   {
+    "id": "swap",
+    "label": "Swap",
+    "value": "1,1 Go",
+    "percent": 56.0395507607609,
+    "state": "ok",
+    "detail": "2,0 Go au total"
+   }
+  ],
+  "top": [
+   {
+    "pid": 26624,
+    "cpu": 128.6,
+    "rss": 11391991808,
+    "name": "com.apple.Virtualization.VirtualMachine",
+    "canKill": true
+   },
+   {
+    "pid": 66617,
+    "cpu": 84.9,
+    "rss": 49709056,
+    "name": "com.sophos.endpoint.scanextension",
+    "canKill": true
+   },
+   {
+    "pid": 66338,
+    "cpu": 42.6,
+    "rss": 30916608,
+    "name": "SophosCryptoGuard",
+    "canKill": true
+   },
+   {
+    "pid": 818,
+    "cpu": 41,
+    "rss": 89161728,
+    "name": "WindowServer",
+    "canKill": false
+   },
+   {
+    "pid": 72953,
+    "cpu": 39,
+    "rss": 1001996288,
+    "name": "node",
+    "canKill": false
+   }
+  ]
+ },
+ "apps": {
+  "available": true,
+  "at": "2026-11-04T14:36:51.436Z",
+  "hidden": false,
+  "apps": [
+   {
+    "name": "Safari",
+    "path": "/Applications/Safari.app",
+    "domain": "system",
+    "label": "Système",
+    "vendor": false,
+    "bundles": [
+     {
+      "path": "/Applications/Safari.app",
+      "version": "27.2",
+      "build": "22625.2.8.11.9",
+      "empty": false,
+      "brokenLink": false,
+      "symlinkTarget": "../System/Cryptexes/App/System/Applications/Safari.app"
+     }
+    ],
+    "bundleId": "com.apple.Safari",
+    "version": "27.2",
+    "build": "22625.2.8.11.9",
+    "installedAt": "2026-10-13T04:38:32.000Z",
+    "size": 0,
+    "executable": "Safari",
+    "cask": null,
+    "system": true,
+    "state": "system",
+    "raw": ""
+   },
+   {
+    "name": "Slack",
+    "path": "/Applications/Slack.app",
+    "domain": "system",
+    "label": "Système",
+    "vendor": false,
+    "bundles": [
+     {
+      "path": "/Applications/Slack.app",
+      "version": "4.53.276",
+      "build": "453000276",
+      "empty": false,
+      "brokenLink": false,
+      "symlinkTarget": ""
+     }
+    ],
+    "bundleId": "com.tinyspeck.slackmacgap",
+    "version": "4.53.276",
+    "build": "453000276",
+    "installedAt": "2026-10-29T19:21:16.000Z",
+    "size": 0,
+    "executable": "Slack",
+    "cask": null,
+    "system": false,
+    "state": "direct",
+    "raw": ""
+   }
+  ],
+  "brew": {
+   "present": true,
+   "available": true,
+   "version": "7.0.12-79-g96d2a24",
+   "headShort": "7.0.12-79-g96d2a24",
+   "formulae": [
+    {
+     "name": "abseil",
+     "version": "20260817.0"
+    },
+    {
+     "name": "ada-url",
+     "version": "4.0.0_1"
+    },
+    {
+     "name": "antigen",
+     "version": "2.2.3"
+    },
+    {
+     "name": "aom",
+     "version": "3.15.3"
+    },
+    {
+     "name": "apr",
+     "version": "1.7.6"
+    },
+    {
+     "name": "apr-util",
+     "version": "1.6.5_1"
+    },
+    {
+     "name": "argon2",
+     "version": "20190702_1"
+    },
+    {
+     "name": "autoconf",
+     "version": "2.73"
+    },
+    {
+     "name": "azure-cli",
+     "version": "2.90.0"
+    },
+    {
+     "name": "bash",
+     "version": "5.3.20"
+    },
+    {
+     "name": "brotli",
+     "version": "1.2.1"
+    },
+    {
+     "name": "btop",
+     "version": "1.4.8"
+    },
+    {
+     "name": "c-ares",
+     "version": "1.34.9"
+    },
+    {
+     "name": "ca-certificates",
+     "version": "2026-10-20"
+    },
+    {
+     "name": "cairo",
+     "version": "1.18.6"
+    },
+    {
+     "name": "capstone",
+     "version": "5.0.9"
+    },
+    {
+     "name": "cmake",
+     "version": "4.4.5"
+    },
+    {
+     "name": "cocoapods",
+     "version": "1.17.0_1"
+    },
+    {
+     "name": "colima",
+     "version": "0.10.3"
+    },
+    {
+     "name": "composer",
+     "version": "2.11.1"
+    },
+    {
+     "name": "coreutils",
+     "version": "9.12_1"
+    },
+    {
+     "name": "curl",
+     "version": "8.23.0"
+    },
+    {
+     "name": "dartaotruntime",
+     "version": "3.13.7"
+    },
+    {
+     "name": "dav1d",
+     "version": "1.5.4"
+    },
+    {
+     "name": "devspace",
+     "version": "6.3.21"
+    },
+    {
+     "name": "direnv",
+     "version": "2.38.2"
+    },
+    {
+     "name": "docker",
+     "version": "29.9.2"
+    },
+    {
+     "name": "docker-buildx",
+     "version": "0.38.1"
+    },
+    {
+     "name": "docker-credential-helper",
+     "version": "0.9.12"
+    },
+    {
+     "name": "dtc",
+     "version": "1.8.1"
+    },
+    {
+     "name": "dyff",
+     "version": "1.12.0"
+    },
+    {
+     "name": "emacs",
+     "version": "31.1_1"
+    },
+    {
+     "name": "ffmpeg",
+     "version": "9.0.2_1"
+    },
+    {
+     "name": "fmt",
+     "version": "12.2.0"
+    },
+    {
+     "name": "fontconfig",
+     "version": "2.18.3"
+    },
+    {
+     "name": "freetds",
+     "version": "1.5.20"
+    },
+    {
+     "name": "freetype",
+     "version": "2.15.0"
+    },
+    {
+     "name": "fvm",
+     "version": "4.3.2"
+    },
+    {
+     "name": "gd",
+     "version": "2.3.3_6"
+    },
+    {
+     "name": "gettext",
+     "version": "1.0"
+    },
+    {
+     "name": "gh",
+     "version": "2.103.3"
+    },
+    {
+     "name": "giflib",
+     "version": "6.1.3"
+    },
+    {
+     "name": "git-filter-repo",
+     "version": "2.47.0"
+    },
+    {
+     "name": "git-machete",
+     "version": "3.46.1"
+    },
+    {
+     "name": "glib",
+     "version": "2.90.1"
+    },
+    {
+     "name": "gmp",
+     "version": "6.3.0"
+    },
+    {
+     "name": "gnupg",
+     "version": "2.5.24_1"
+    },
+    {
+     "name": "gnutls",
+     "version": "3.8.13_2"
+    },
+    {
+     "name": "graphite2",
+     "version": "1.3.15"
+    },
+    {
+     "name": "harfbuzz",
+     "version": "15.0.0_1"
+    },
+    {
+     "name": "hdrhistogram_c",
+     "version": "0.12.1"
+    },
+    {
+     "name": "helm@3",
+     "version": "3.22.1"
+    },
+    {
+     "name": "highway",
+     "version": "1.4.0"
+    },
+    {
+     "name": "icu4c@78",
+     "version": "78.3_1"
+    },
+    {
+     "name": "icu4c@79",
+     "version": "79.1"
+    },
+    {
+     "name": "jpeg-turbo",
+     "version": "3.2.1"
+    },
+    {
+     "name": "json-c",
+     "version": "0.19"
+    },
+    {
+     "name": "k9s",
+     "version": "0.51.0"
+    },
+    {
+     "name": "kind",
+     "version": "0.33.0"
+    },
+    {
+     "name": "krb5",
+     "version": "1.22.2_2"
+    },
+    {
+     "name": "kubernetes-cli",
+     "version": "1.37.2"
+    },
+    {
+     "name": "lame",
+     "version": "4.0"
+    },
+    {
+     "name": "libassuan",
+     "version": "3.0.2"
+    },
+    {
+     "name": "libavif",
+     "version": "1.4.2"
+    },
+    {
+     "name": "libffi",
+     "version": "3.8.0"
+    },
+    {
+     "name": "libgcrypt",
+     "version": "1.12.4"
+    },
+    {
+     "name": "libgpg-error",
+     "version": "1.61"
+    },
+    {
+     "name": "libidn2",
+     "version": "2.3.8"
+    },
+    {
+     "name": "libksba",
+     "version": "1.8.1"
+    },
+    {
+     "name": "libnghttp2",
+     "version": "1.70.0"
+    },
+    {
+     "name": "libnghttp3",
+     "version": "1.18.0"
+    },
+    {
+     "name": "libngtcp2",
+     "version": "1.25.0_1"
+    },
+    {
+     "name": "libpng",
+     "version": "1.6.59"
+    },
+    {
+     "name": "libpq",
+     "version": "18.6_2"
+    },
+    {
+     "name": "libpsl",
+     "version": "0.23.3"
+    },
+    {
+     "name": "libslirp",
+     "version": "4.9.7"
+    },
+    {
+     "name": "libsodium",
+     "version": "1.0.22"
+    },
+    {
+     "name": "libssh",
+     "version": "0.12.2_1"
+    },
+    {
+     "name": "libssh2",
+     "version": "1.11.1_7"
+    },
+    {
+     "name": "libtasn1",
+     "version": "4.21.0"
+    },
+    {
+     "name": "libtiff",
+     "version": "4.7.2"
+    },
+    {
+     "name": "libtool",
+     "version": "2.6.2"
+    },
+    {
+     "name": "libunistring",
+     "version": "1.5"
+    },
+    {
+     "name": "libusb",
+     "version": "1.0.30"
+    },
+    {
+     "name": "libuv",
+     "version": "1.53.0"
+    },
+    {
+     "name": "libvmaf",
+     "version": "3.2.1"
+    },
+    {
+     "name": "libvpx",
+     "version": "1.17.0"
+    },
+    {
+     "name": "libvterm",
+     "version": "0.3.3"
+    },
+    {
+     "name": "libx11",
+     "version": "1.8.14"
+    },
+    {
+     "name": "libxau",
+     "version": "1.0.12"
+    },
+    {
+     "name": "libxcb",
+     "version": "1.17.0"
+    },
+    {
+     "name": "libxdmcp",
+     "version": "1.1.5"
+    },
+    {
+     "name": "libxext",
+     "version": "1.3.7"
+    },
+    {
+     "name": "libxrender",
+     "version": "0.9.13"
+    },
+    {
+     "name": "libyaml",
+     "version": "0.2.5"
+    },
+    {
+     "name": "libzip",
+     "version": "1.12.1"
+    },
+    {
+     "name": "lima",
+     "version": "2.2.1"
+    },
+    {
+     "name": "lima-additional-guestagents",
+     "version": "2.2.1"
+    },
+    {
+     "name": "little-cms2",
+     "version": "2.19.1"
+    },
+    {
+     "name": "llhttp",
+     "version": "9.4.3"
+    },
+    {
+     "name": "lz4",
+     "version": "1.10.0"
+    },
+    {
+     "name": "lzo",
+     "version": "2.10"
+    },
+    {
+     "name": "m4",
+     "version": "1.4.21"
+    },
+    {
+     "name": "merve",
+     "version": "1.2.2_4"
+    },
+    {
+     "name": "mkcert",
+     "version": "1.4.4"
+    },
+    {
+     "name": "mpdecimal",
+     "version": "4.0.1"
+    },
+    {
+     "name": "mpg123",
+     "version": "1.33.7"
+    },
+    {
+     "name": "nbytes",
+     "version": "0.1.4"
+    },
+    {
+     "name": "ncurses",
+     "version": "6.6"
+    },
+    {
+     "name": "net-snmp",
+     "version": "5.9.5.2_2"
+    },
+    {
+     "name": "nettle",
+     "version": "4.0"
+    },
+    {
+     "name": "node",
+     "version": "26.13.0_2"
+    },
+    {
+     "name": "npth",
+     "version": "1.8"
+    },
+    {
+     "name": "oniguruma",
+     "version": "6.9.10"
+    },
+    {
+     "name": "opencode",
+     "version": "2.2.5"
+    },
+    {
+     "name": "openjdk",
+     "version": "27.0.1.0.3"
+    },
+    {
+     "name": "openjdk@21",
+     "version": "21.0.13.0.3"
+    },
+    {
+     "name": "openldap",
+     "version": "2.7.2"
+    },
+    {
+     "name": "openssl@3",
+     "version": "3.5.9"
+    },
+    {
+     "name": "openssl@4",
+     "version": "4.1.0"
+    },
+    {
+     "name": "opus",
+     "version": "1.6.1"
+    },
+    {
+     "name": "p11-kit",
+     "version": "0.26.5"
+    },
+    {
+     "name": "pandoc",
+     "version": "3.13"
+    },
+    {
+     "name": "pcre2",
+     "version": "10.49"
+    },
+    {
+     "name": "php",
+     "version": "8.5.12_1"
+    },
+    {
+     "name": "php@8.4",
+     "version": "8.4.27_1"
+    },
+    {
+     "name": "pinentry",
+     "version": "1.3.3"
+    },
+    {
+     "name": "pinentry-mac",
+     "version": "1.3.1.1"
+    },
+    {
+     "name": "pixman",
+     "version": "0.46.4"
+    },
+    {
+     "name": "portaudio",
+     "version": "19.7.0"
+    },
+    {
+     "name": "python@3.14",
+     "version": "3.14.10"
+    },
+    {
+     "name": "python@3.15",
+     "version": "3.15.2"
+    },
+    {
+     "name": "qemu",
+     "version": "11.1.3"
+    },
+    {
+     "name": "readline",
+     "version": "8.3.6"
+    },
+    {
+     "name": "ripgrep",
+     "version": "15.2.0"
+    },
+    {
+     "name": "ruby",
+     "version": "4.0.9"
+    },
+    {
+     "name": "rust-analyzer",
+     "version": "2026-10-26"
+    },
+    {
+     "name": "rustup",
+     "version": "1.29.2"
+    },
+    {
+     "name": "screen",
+     "version": "5.0.2"
+    },
+    {
+     "name": "sdl2-compat",
+     "version": "2.32.74"
+    },
+    {
+     "name": "sdl3",
+     "version": "3.4.18"
+    },
+    {
+     "name": "shellcheck",
+     "version": "0.11.0"
+    },
+    {
+     "name": "simdjson",
+     "version": "5.1.1"
+    },
+    {
+     "name": "simdutf",
+     "version": "9.3.3"
+    },
+    {
+     "name": "snappy",
+     "version": "1.3.1"
+    },
+    {
+     "name": "sqlite",
+     "version": "3.54.1"
+    },
+    {
+     "name": "svt-av1",
+     "version": "4.2.0"
+    },
+    {
+     "name": "tidy-html5",
+     "version": "5.8.0"
+    },
+    {
+     "name": "tree-sitter",
+     "version": "0.27.1"
+    },
+    {
+     "name": "unixodbc",
+     "version": "2.3.14"
+    },
+    {
+     "name": "uvwasi",
+     "version": "0.0.23"
+    },
+    {
+     "name": "vde",
+     "version": "2.3.3"
+    },
+    {
+     "name": "watch",
+     "version": "4.0.7"
+    },
+    {
+     "name": "webp",
+     "version": "1.6.0"
+    },
+    {
+     "name": "x264",
+     "version": "r3222"
+    },
+    {
+     "name": "x265",
+     "version": "4.3"
+    },
+    {
+     "name": "xorgproto",
+     "version": "2026.1"
+    },
+    {
+     "name": "xz",
+     "version": "5.8.4"
+    },
+    {
+     "name": "yq",
+     "version": "4.54.1"
+    },
+    {
+     "name": "z",
+     "version": "1.12"
+    },
+    {
+     "name": "zsh-autosuggestions",
+     "version": "0.7.1"
+    },
+    {
+     "name": "zsh-completions",
+     "version": "0.36.0"
+    },
+    {
+     "name": "zsh-syntax-highlighting",
+     "version": "0.8.0"
+    },
+    {
+     "name": "zstd",
+     "version": "1.5.7_1"
+    }
+   ],
+   "casks": [
+    {
+     "token": "agency-agents",
+     "version": "0.3.2"
+    },
+    {
+     "token": "android-commandlinetools",
+     "version": "15859902"
+    },
+    {
+     "token": "bruno",
+     "version": "4.2.0"
+    },
+    {
+     "token": "cloudflare-warp",
+     "version": "2026.6.822.0"
+    },
+    {
+     "token": "font-jetbrains-mono-nerd-font",
+     "version": "3.5.1"
+    },
+    {
+     "token": "ghostty",
+     "version": "1.3.1"
+    },
+    {
+     "token": "google-chrome",
+     "version": "156.0.8078.80"
+    },
+    {
+     "token": "sequel-ace",
+     "version": "6.1.0,20117"
+    }
+   ],
+   "outdatedCasks": [
+    {
+     "token": "bruno",
+     "installed": "4.2.0",
+     "latest": "4.3.0",
+     "autoUpdates": false
+    },
+    {
+     "token": "cloudflare-warp",
+     "installed": "2026.6.822.0",
+     "latest": "2026.8.2115.0",
+     "autoUpdates": false
+    },
+    {
+     "token": "ghostty",
+     "installed": "1.3.1",
+     "latest": "1.4.0",
+     "autoUpdates": false
+    },
+    {
+     "token": "google-chrome",
+     "installed": "156.0.8078.80",
+     "latest": "157.0.8103.39",
+     "autoUpdates": false
+    }
+   ],
+   "outdatedFormulae": [],
+   "lastUpdate": "2026-11-04T13:51:14.664Z",
+   "updateBehind": 0,
+   "hidden": false
+  },
+  "counts": {
+   "total": 23,
+   "bundles": 27,
+   "system": 20,
+   "user": 7,
+   "brew": 6,
+   "outOfDate": 4,
+   "invalid": 2,
+   "desync": 3,
+   "direct": 13,
+   "current": 2,
+   "formulae": 164,
+   "formulaeOutdated": 0,
+   "casks": 8,
+   "casksOutdated": 4
+  },
+  "causes": []
+ }
+}
