@@ -131,8 +131,11 @@ const row = (name, state, extra = {}) => ({
 
 function mount(data = fixture, options = {}) {
   const { React, state } = hooks()
+  const tab = options.tab ?? 'applications'
+  const cpu = options.cpu
+  const fetches = []
   const store = new Map([
-    ['dsh-monitor:tab', options.tab ?? 'applications'],
+    ['dsh-monitor:tab', tab],
     ['dsh-monitor:etat', JSON.stringify({ data: fixture, at: Date.parse(fixture.at) || Date.now() })],
   ])
   const windowStub = {
@@ -163,7 +166,13 @@ function mount(data = fixture, options = {}) {
 
   globalThis.fetch = async (url) => {
     const key = String(url)
+    fetches.push(key)
     if (key.includes('/systeme/api/etat')) return { ok: true, status: 200, json: async () => data }
+    if (key.includes('/systeme/api/cpu')) {
+      if (cpu === 'error') return { ok: false, status: 500, json: async () => ({ error: 'relevé indisponible' }) }
+      if (!cpu) return { ok: false, status: 404, json: async () => ({ error: 'pas de route' }) }
+      return { ok: true, status: 200, json: async () => cpu }
+    }
     if (key.includes('/systeme/api/app/footprint')) return { ok: true, status: 200, json: async () => footprint }
     if (key.includes('/systeme/api/action')) return { ok: true, status: 200, json: async () => ({ receipt: { name: 'Slack', bytes: 0, footprint } }) }
     if (key.includes('/systeme/api/disque')) {
@@ -204,7 +213,7 @@ function mount(data = fixture, options = {}) {
     return tree
   }
 
-  return { seats, settle }
+  return { seats, settle, fetches }
 }
 
 const tableOf = (tree) => nodes(tree).find((node) => node.tag === 'table' && String(node.props.className ?? '').includes('app-table'))
@@ -399,9 +408,80 @@ async function diskScenarios() {
   console.log('modale du disque : loader d’analyse, relevé, erreur et fermeture pendant l’analyse')
 }
 
+function cpuPayload() {
+  const end = Date.parse('2026-11-05T08:00:00.000Z')
+  const points = []
+  for (let index = 0; index < 10; index += 1) {
+    points.push({ at: new Date(end - (30 - index) * 60000).toISOString(), cpu: 8 + index * 4, max: 9 + index * 4, count: 1 })
+  }
+  points.push({ at: new Date(end - 6 * 60000).toISOString(), cpu: 88.4, max: 96.2, count: 3 })
+  return {
+    window: '1h',
+    at: new Date(end).toISOString(),
+    step: 30000,
+    cadence: 60,
+    retention: 24,
+    file: '~/.dsh/storages/dsh-monitor/cpu.jsonl',
+    points,
+    summary: { current: 88.4, min: 8, average: 38.9, max: 96.2, samples: 13 },
+    total: 13,
+  }
+}
+
+async function machineScenarios() {
+  const { seats, settle, fetches } = mount(fixture, { tab: 'machine', cpu: cpuPayload() })
+  assert.ok(seats.some((seat) => seat.options.name === 'main'), 'le panneau main est enregistré')
+
+  const panel = await settle(props)
+  const rendered = panelText(panel)
+  assert.match(rendered, /Processeur/, 'la carte Processeur est rendue')
+  assert.match(rendered, /cpu\.jsonl/, 'la carte nomme son fichier')
+  assert.match(rendered, /24 h de rétention, panneau fermé compris/, 'la note dit la rétention et le remplissage hors panneau')
+  assert.match(rendered, /Fenêtre 1 h · 60 s par point/)
+  assert.match(rendered, /Actuel 88,4 %/)
+  assert.match(rendered, /minimum 8,0 %/)
+  assert.match(rendered, /moyenne 38,9 %/)
+  assert.match(rendered, /maximum 96,2 %/)
+  assert.match(rendered, /13 mesures/)
+  assert.doesNotMatch(rendered, /24 dernières minutes/, 'l’ancienne barre des 24 traits a disparu')
+  assert.equal(nodes(panel).some((node) => String(node.props?.className ?? '').includes('spark')), false, 'aucun trait de l’ancienne barre')
+
+  const chart = nodes(panel).find((node) => node.tag === 'svg' && String(node.props['aria-label'] ?? '').includes('processeur'))
+  assert.ok(chart, 'la courbe porte son svg nommé')
+  const chartNodes = nodes(chart)
+  assert.equal(chartNodes.filter((node) => node.tag === 'path' && node.props.fill === 'none').length, 1, 'la coupure sépare la courbe en un seul trait continu')
+  assert.equal(chartNodes.filter((node) => node.tag === 'path' && node.props.fill === 'url(#cpufill)').length, 1, 'le trait large porte son aire remplie')
+  assert.match(chartNodes.find((node) => node.tag === 'path' && node.props.fill === 'none').props.d, / C[\d.]/, 'la courbe est lissée')
+  assert.equal(chartNodes.filter((node) => node.tag === 'circle').length, 1, 'la mesure isolée reste un point')
+  const bands = chartNodes.filter((node) => node.tag === 'rect' && String(node.props.fill) === 'transparent')
+  assert.equal(bands.length, 11, 'une bande de survol par point agrégé')
+  assert.ok(bands.some((band) => text(band).includes('au plus sur 3 mesures')), 'la bande agrégée dit son maximum')
+
+  const windows = nodes(panel).filter((node) => node.tag === 'button' && ['1 h', '6 h', '24 h'].includes(text(node).trim()))
+  assert.equal(windows.length, 3, 'trois fenêtres offertes')
+  assert.equal(windows[0].props['aria-pressed'], 'true', 'la fenêtre d’ouverture est à 1 h')
+  assert.equal(windows[1].props['aria-pressed'], 'false')
+  windows[1].props.onClick()
+  const six = await settle(props)
+  assert.match(panelText(six), /Fenêtre 6 h · 60 s par point/, 'la bascule change la fenêtre')
+  assert.ok(fetches.some((url) => url.includes('/systeme/api/cpu?fenetre=6h')), 'la bascule relit les mesures')
+
+  const vide = mount(fixture, { tab: 'machine', cpu: { ...cpuPayload(), points: [], summary: { current: null, min: null, average: null, max: null, samples: 0 }, total: 0 } })
+  const emptyPanel = await vide.settle(props)
+  assert.match(panelText(emptyPanel), /Aucune mesure encore/, 'le premier lancement explique le fichier qui se remplit')
+  assert.match(panelText(emptyPanel), /panneau fermé compris/)
+
+  const casse = mount(fixture, { tab: 'machine', cpu: 'error' })
+  const brokenPanel = await casse.settle(props)
+  assert.match(panelText(brokenPanel), /Les mesures ne répondent pas/, 'une route muette ne casse pas l’onglet')
+
+  console.log('carte Processeur rendue : courbe, fenêtres, état vide et route muette')
+}
+
 async function main() {
   await filterScenarios()
   await brewScenarios()
+  await machineScenarios()
   await diskScenarios()
 
   const { seats, settle } = mount()
