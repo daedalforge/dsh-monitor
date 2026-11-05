@@ -451,6 +451,7 @@ async function machineScenarios() {
   const chartNodes = nodes(chart)
   assert.equal(chartNodes.filter((node) => node.tag === 'path' && node.props.fill === 'none').length, 1, 'la coupure sépare la courbe en un seul trait continu')
   assert.equal(chartNodes.filter((node) => node.tag === 'path' && node.props.fill === 'url(#cpufill)').length, 1, 'le trait large porte son aire remplie')
+  assert.match(chartNodes.find((node) => node.tag === 'path' && node.props.fill === 'none').props.d, / C[\d.]/, 'la courbe est lissée')
   assert.equal(chartNodes.filter((node) => node.tag === 'circle').length, 1, 'la mesure isolée reste un point')
   const bands = chartNodes.filter((node) => node.tag === 'rect' && String(node.props.fill) === 'transparent')
   assert.equal(bands.length, 11, 'une bande de survol par point agrégé')
